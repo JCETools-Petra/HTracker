@@ -73,6 +73,14 @@ class Property extends Model
         return $this->hasMany(Inventory::class);
     }
 
+    /**
+     * Relasi ke Budget Periods
+     */
+    public function budgetPeriods(): HasMany
+    {
+        return $this->hasMany(BudgetPeriod::class);
+    }
+
     // ==========================================================
     // METHOD 'booted()' YANG SEBELUMNYA ADA DI SINI, SEKARANG DIHAPUS
     // ==========================================================

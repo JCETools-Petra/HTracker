@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\ActivityLogController;
+use App\Http\Controllers\Admin\BudgetController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\HotelRoomController as AdminHotelRoomController;
 use App\Http\Controllers\Admin\IncomeController as AdminIncomeController;
@@ -125,6 +126,19 @@ Route::prefix('admin')->middleware(['auth', 'verified', 'role:admin,owner'])->na
         Route::delete('/destroy-room-type/{roomType}', [PricingRuleController::class, 'destroyRoomType'])->name('room-type.destroy');
         Route::put('/update-property-bars', [PricingRuleController::class, 'updatePropertyBars'])->name('property-bars.update');
     });
+
+    // Budget Management Routes
+    Route::prefix('properties/{property}/budgets')->name('budgets.')->group(function () {
+        Route::get('/', [BudgetController::class, 'index'])->name('index');
+        Route::get('/create', [BudgetController::class, 'create'])->name('create');
+        Route::post('/', [BudgetController::class, 'store'])->name('store');
+        Route::get('/{budgetPeriod}', [BudgetController::class, 'show'])->name('show');
+        Route::put('/{budgetPeriod}', [BudgetController::class, 'update'])->name('update');
+        Route::patch('/{budgetPeriod}/status', [BudgetController::class, 'updateStatus'])->name('updateStatus');
+        Route::delete('/{budgetPeriod}', [BudgetController::class, 'destroy'])->name('destroy');
+        Route::get('/{budgetPeriod}/report', [BudgetController::class, 'report'])->name('report');
+    });
+
     Route::get('/inventories/export', [\App\Http\Controllers\Admin\InventoryController::class, 'exportExcel'])->name('inventories.export');
     Route::post('/settings/test-msq-email', [\App\Http\Controllers\Admin\SettingController::class, 'sendTestMsqEmail'])->name('settings.testMsqEmail');
 });
