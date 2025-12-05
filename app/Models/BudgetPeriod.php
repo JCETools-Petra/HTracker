@@ -14,7 +14,22 @@ class BudgetPeriod extends Model
     protected $fillable = [
         'property_id',
         'year',
+        'total_revenue_target',
+        'total_expense_budget',
+        'target_profit',
         'status',
+        'notes',
+        'submitted_at',
+        'approved_at',
+        'approved_by',
+    ];
+
+    protected $casts = [
+        'total_revenue_target' => 'decimal:2',
+        'total_expense_budget' => 'decimal:2',
+        'target_profit' => 'decimal:2',
+        'submitted_at' => 'datetime',
+        'approved_at' => 'datetime',
     ];
 
     /**
@@ -26,35 +41,40 @@ class BudgetPeriod extends Model
     }
 
     /**
-     * Relasi ke Budget Plans
+     * Relasi ke Budget Departments
      */
-    public function budgetPlans(): HasMany
+    public function departments(): HasMany
     {
-        return $this->hasMany(BudgetPlan::class);
+        return $this->hasMany(BudgetDepartment::class);
     }
 
     /**
-     * Relasi ke Budget Drivers
+     * Relasi ke Revenue Targets
      */
-    public function budgetDrivers(): HasMany
+    public function revenueTargets(): HasMany
     {
-        return $this->hasMany(BudgetDriver::class);
+        return $this->hasMany(BudgetRevenueTarget::class);
     }
 
     /**
-     * Scope untuk filter berdasarkan property
+     * Relasi ke User yang approve
      */
-    public function scopeForProperty($query, $propertyId)
+    public function approver(): BelongsTo
     {
-        return $query->where('property_id', $propertyId);
+        return $this->belongsTo(User::class, 'approved_by');
     }
 
     /**
-     * Scope untuk filter berdasarkan tahun
+     * Get all expenses through departments
      */
-    public function scopeForYear($query, $year)
+    public function expenses()
     {
-        return $query->where('year', $year);
+        return $this->hasManyThrough(
+            BudgetExpense::class,
+            BudgetDepartment::class,
+            'budget_period_id',
+            'budget_department_id'
+        );
     }
 
     /**
@@ -63,6 +83,14 @@ class BudgetPeriod extends Model
     public function isDraft(): bool
     {
         return $this->status === 'draft';
+    }
+
+    /**
+     * Check apakah budget sudah submitted
+     */
+    public function isSubmitted(): bool
+    {
+        return $this->status === 'submitted';
     }
 
     /**
@@ -79,5 +107,72 @@ class BudgetPeriod extends Model
     public function isLocked(): bool
     {
         return $this->status === 'locked';
+    }
+
+    /**
+     * Hitung total expense yang sudah dipakai
+     */
+    public function getTotalExpenseUsedAttribute(): float
+    {
+        return $this->departments->sum(function ($dept) {
+            return $dept->expenses->sum('amount');
+        });
+    }
+
+    /**
+     * Hitung sisa budget expense
+     */
+    public function getRemainingExpenseBudgetAttribute(): float
+    {
+        return $this->total_expense_budget - $this->total_expense_used;
+    }
+
+    /**
+     * Hitung persentase budget terpakai
+     */
+    public function getBudgetUsedPercentageAttribute(): float
+    {
+        if ($this->total_expense_budget == 0) return 0;
+        return ($this->total_expense_used / $this->total_expense_budget) * 100;
+    }
+
+    /**
+     * Hitung total revenue actual dari daily_incomes
+     */
+    public function getTotalRevenueActualAttribute(): float
+    {
+        return DailyIncome::where('property_id', $this->property_id)
+            ->whereYear('date', $this->year)
+            ->sum('total_revenue');
+    }
+
+    /**
+     * Forecast: Prediksi bulan habis budget
+     */
+    public function getForecastedDepletionMonthAttribute(): ?int
+    {
+        $monthsPassed = now()->year == $this->year ? now()->month : 12;
+
+        if ($monthsPassed == 0) return null;
+
+        $avgMonthlySpending = $this->total_expense_used / $monthsPassed;
+
+        if ($avgMonthlySpending == 0) return null;
+
+        $monthsRemaining = $this->remaining_expense_budget / $avgMonthlySpending;
+
+        return (int) ceil($monthsPassed + $monthsRemaining);
+    }
+
+    /**
+     * Get budget health status
+     */
+    public function getBudgetHealthAttribute(): string
+    {
+        $percentage = $this->budget_used_percentage;
+
+        if ($percentage < 60) return 'healthy';
+        if ($percentage < 85) return 'warning';
+        return 'critical';
     }
 }

@@ -134,9 +134,18 @@ Route::prefix('admin')->middleware(['auth', 'verified', 'role:admin,owner'])->na
         Route::post('/', [BudgetController::class, 'store'])->name('store');
         Route::get('/{budgetPeriod}', [BudgetController::class, 'show'])->name('show');
         Route::put('/{budgetPeriod}', [BudgetController::class, 'update'])->name('update');
-        Route::patch('/{budgetPeriod}/status', [BudgetController::class, 'updateStatus'])->name('updateStatus');
         Route::delete('/{budgetPeriod}', [BudgetController::class, 'destroy'])->name('destroy');
-        Route::get('/{budgetPeriod}/report', [BudgetController::class, 'report'])->name('report');
+
+        // Expense Management
+        Route::get('/{budgetPeriod}/expenses/create', [BudgetController::class, 'createExpense'])->name('expenses.create');
+        Route::post('/{budgetPeriod}/expenses', [BudgetController::class, 'storeExpense'])->name('expenses.store');
+        Route::delete('/{budgetPeriod}/expenses/{expense}', [BudgetController::class, 'destroyExpense'])->name('expenses.destroy');
+
+        // Approval Workflow
+        Route::post('/{budgetPeriod}/submit', [BudgetController::class, 'submit'])->name('submit');
+        Route::post('/{budgetPeriod}/approve', [BudgetController::class, 'approve'])->name('approve');
+        Route::post('/{budgetPeriod}/reject', [BudgetController::class, 'reject'])->name('reject');
+        Route::post('/{budgetPeriod}/lock', [BudgetController::class, 'lock'])->name('lock');
     });
 
     Route::get('/inventories/export', [\App\Http\Controllers\Admin\InventoryController::class, 'exportExcel'])->name('inventories.export');

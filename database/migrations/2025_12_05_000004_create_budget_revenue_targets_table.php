@@ -11,16 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('budget_drivers', function (Blueprint $table) {
+        Schema::create('budget_revenue_targets', function (Blueprint $table) {
             $table->id();
             $table->foreignId('budget_period_id')->constrained('budget_periods')->onDelete('cascade');
             $table->integer('month'); // 1-12
-            $table->decimal('target_occupancy_pct', 5, 2)->default(0); // Contoh: 75.50 (%)
-            $table->decimal('target_adr', 12, 2)->default(0); // Average Daily Rate
-            $table->integer('days_in_month')->default(30);
+            $table->decimal('target_amount', 15, 2)->default(0);
             $table->timestamps();
 
-            // Unique constraint: satu driver per bulan per periode
+            // Unique constraint: satu target per bulan per periode
             $table->unique(['budget_period_id', 'month']);
         });
     }
@@ -30,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('budget_drivers');
+        Schema::dropIfExists('budget_revenue_targets');
     }
 };
