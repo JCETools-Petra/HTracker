@@ -2,7 +2,7 @@
     <x-slot name="header">
         <div class="flex flex-wrap justify-between items-center">
             <h2 class="font-semibold text-xl text-gray-800 dark:text-gray-200 leading-tight">
-                {{ __('Input Data Aktual - ') }} {{ $property->name }}
+                {{ __('Input Budget Tahunan - ') }} {{ $property->name }}
             </h2>
             <nav class="flex flex-wrap items-center space-x-2 sm:space-x-3">
                 <x-nav-link :href="route('property.financial.report')" class="ml-3">
@@ -22,47 +22,36 @@
                         </div>
                     @endif
 
-                    <!-- Period Selection -->
-                    <form method="GET" action="{{ route('property.financial.input-actual') }}" class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg shadow">
+                    <!-- Year Selection -->
+                    <form method="GET" action="{{ route('property.financial.input-budget') }}" class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg shadow">
                         <div class="flex flex-col md:flex-row md:items-end md:space-x-4 space-y-4 md:space-y-0">
                             <div class="flex-1">
-                                <label for="year" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tahun</label>
+                                <label for="year" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tahun Budget</label>
                                 <select name="year" id="year" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 rounded-md shadow-sm">
-                                    @for($y = date('Y') - 2; $y <= date('Y') + 2; $y++)
+                                    @for($y = date('Y'); $y <= date('Y') + 3; $y++)
                                         <option value="{{ $y }}" {{ $year == $y ? 'selected' : '' }}>{{ $y }}</option>
                                     @endfor
                                 </select>
                             </div>
-                            <div class="flex-1">
-                                <label for="month" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Bulan</label>
-                                <select name="month" id="month" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 rounded-md shadow-sm">
-                                    @for($m = 1; $m <= 12; $m++)
-                                        <option value="{{ $m }}" {{ $month == $m ? 'selected' : '' }}>
-                                            {{ \Carbon\Carbon::create(2000, $m, 1)->format('F') }}
-                                        </option>
-                                    @endfor
-                                </select>
-                            </div>
                             <div>
-                                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Pilih Periode</button>
+                                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Pilih Tahun</button>
                             </div>
                         </div>
                     </form>
 
                     <div class="mb-4 p-4 bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded-lg">
                         <p class="text-sm text-blue-800 dark:text-blue-200">
-                            <strong>Periode:</strong> {{ \Carbon\Carbon::create(2000, $month, 1)->format('F') }} {{ $year }}
+                            <strong>Tahun:</strong> {{ $year }}
                         </p>
                         <p class="text-xs text-blue-600 dark:text-blue-300 mt-1">
-                            Input data realisasi (Actual) dan anggaran (Budget) untuk bulan ini. Data pendapatan (Revenue) akan diambil otomatis dari pencatatan harian.
+                            Input budget tahunan untuk masing-masing kategori. Budget akan didistribusikan secara merata ke 12 bulan.
                         </p>
                     </div>
 
                     <!-- Input Form -->
-                    <form method="POST" action="{{ route('property.financial.input-actual.store') }}" x-data="{ activeTab: 0 }">
+                    <form method="POST" action="{{ route('property.financial.input-budget.store') }}" x-data="{ activeTab: 0 }">
                         @csrf
                         <input type="hidden" name="year" value="{{ $year }}">
-                        <input type="hidden" name="month" value="{{ $month }}">
 
                         <!-- Department Tabs -->
                         <div class="mb-6">
@@ -91,14 +80,11 @@
                                     <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                         <thead class="bg-gray-50 dark:bg-gray-700">
                                             <tr>
-                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-1/2">
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-2/3">
                                                     Kategori
                                                 </th>
                                                 <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                                    Actual (Rp)
-                                                </th>
-                                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                                    Budget (Rp)
+                                                    Budget Tahunan (Rp)
                                                 </th>
                                             </tr>
                                         </thead>
@@ -112,23 +98,13 @@
                                                     <td class="px-6 py-4 whitespace-nowrap">
                                                         <input
                                                             type="number"
-                                                            name="entries[{{ $loop->parent->index }}_{{ $loop->index }}][actual_value]"
-                                                            step="0.01"
-                                                            min="0"
-                                                            value="{{ $existingEntries[$cat['id']]->actual_value ?? 0 }}"
-                                                            class="w-full text-right border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
-                                                        >
-                                                        <input type="hidden" name="entries[{{ $loop->parent->index }}_{{ $loop->index }}][category_id]" value="{{ $cat['id'] }}">
-                                                    </td>
-                                                    <td class="px-6 py-4 whitespace-nowrap">
-                                                        <input
-                                                            type="number"
                                                             name="entries[{{ $loop->parent->index }}_{{ $loop->index }}][budget_value]"
                                                             step="0.01"
                                                             min="0"
-                                                            value="{{ $existingEntries[$cat['id']]->budget_value ?? 0 }}"
+                                                            value="{{ $existingEntries[$cat['id']] ?? 0 }}"
                                                             class="w-full text-right border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
                                                         >
+                                                        <input type="hidden" name="entries[{{ $loop->parent->index }}_{{ $loop->index }}][category_id]" value="{{ $cat['id'] }}">
                                                     </td>
                                                 </tr>
                                             @endforeach
@@ -141,10 +117,10 @@
                         <!-- Submit Button -->
                         <div class="mt-6 flex justify-end space-x-3">
                             <a href="{{ route('property.financial.report') }}" class="px-6 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">
-                                Batal
+                                Kembali
                             </a>
                             <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                                Simpan Data
+                                Simpan Budget
                             </button>
                         </div>
                     </form>

@@ -84,7 +84,7 @@ class FinancialController extends Controller
             );
         }
 
-        return redirect()->route('financial.input-actual', [
+        return redirect()->route('property.financial.input-actual', [
             'year' => $validated['year'],
             'month' => $validated['month']
         ])->with('success', 'Data berhasil disimpan.');
@@ -202,7 +202,7 @@ class FinancialController extends Controller
             }
         }
 
-        return redirect()->route('financial.input-budget', ['year' => $validated['year']])
+        return redirect()->route('property.financial.input-budget', ['year' => $validated['year']])
             ->with('success', 'Budget tahunan berhasil disimpan dan didistribusikan ke 12 bulan.');
     }
 }

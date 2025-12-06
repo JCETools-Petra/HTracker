@@ -5,7 +5,7 @@
                 {{ __('Laporan P&L (Profit & Loss) - ') }} {{ $property->name }}
             </h2>
             <nav class="flex flex-wrap items-center space-x-2 sm:space-x-3">
-                <x-nav-link :href="route('financial.input-actual')" class="ml-3">
+                <x-nav-link :href="route('property.financial.input-actual')" class="ml-3">
                     {{ __('Input Data Aktual') }}
                 </x-nav-link>
             </nav>
@@ -17,7 +17,7 @@
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900 dark:text-gray-100">
                     <!-- Period Selection -->
-                    <form method="GET" action="{{ route('financial.report') }}" class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg shadow">
+                    <form method="GET" action="{{ route('property.financial.report') }}" class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg shadow">
                         <div class="flex flex-col md:flex-row md:items-end md:space-x-4 space-y-4 md:space-y-0">
                             <div class="flex-1">
                                 <label for="year" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tahun</label>
