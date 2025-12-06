@@ -73,6 +73,16 @@ class Property extends Model
         return $this->hasMany(Inventory::class);
     }
 
+    public function financialCategories(): HasMany
+    {
+        return $this->hasMany(\App\Models\FinancialCategory::class);
+    }
+
+    public function financialEntries(): HasMany
+    {
+        return $this->hasMany(\App\Models\FinancialEntry::class);
+    }
+
     // ==========================================================
     // METHOD 'booted()' YANG SEBELUMNYA ADA DI SINI, SEKARANG DIHAPUS
     // ==========================================================
