@@ -102,6 +102,11 @@
                     {{ __('Manajemen Budgeting') }}
                 </x-side-nav-link>
 
+                <x-side-nav-link :href="route('admin.financial-categories.index')" :active="request()->routeIs('admin.financial-categories.*')">
+                    <x-slot name="icon"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg></x-slot>
+                    {{ __('Kategori Finansial') }}
+                </x-side-nav-link>
+
                 <x-side-nav-link :href="route('admin.activity_log.index')" :active="request()->routeIs('admin.activity_log.index')">
                     <x-slot name="icon"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path></svg></x-slot>
                     {{ __('Log Aktivitas') }}
