@@ -103,7 +103,7 @@ class FinancialController extends Controller
         $months = collect(range(1, 12))->map(function ($m) {
             return [
                 'value' => $m,
-                'name' => Carbon::create()->month($m)->format('F')
+                'name' => Carbon::create(2000, $m, 1)->format('F')
             ];
         });
 

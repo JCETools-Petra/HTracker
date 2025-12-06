@@ -41,7 +41,7 @@
                                 <select name="month" id="month" class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 rounded-md shadow-sm">
                                     @for($m = 1; $m <= 12; $m++)
                                         <option value="{{ $m }}" {{ $month == $m ? 'selected' : '' }}>
-                                            {{ \Carbon\Carbon::create()->month($m)->format('F') }}
+                                            {{ \Carbon\Carbon::create(2000, $m, 1)->format('F') }}
                                         </option>
                                     @endfor
                                 </select>
@@ -54,7 +54,7 @@
 
                     <div class="mb-4 p-4 bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded-lg">
                         <p class="text-sm text-blue-800 dark:text-blue-200">
-                            <strong>Periode:</strong> {{ \Carbon\Carbon::create()->month($month)->format('F') }} {{ $year }}
+                            <strong>Periode:</strong> {{ \Carbon\Carbon::create(2000, $month, 1)->format('F') }} {{ $year }}
                         </p>
                         <p class="text-xs text-blue-600 dark:text-blue-300 mt-1">
                             Input data realisasi (Actual) dan anggaran (Budget) untuk bulan ini. Data pendapatan (Revenue) akan diambil otomatis dari pencatatan harian.
