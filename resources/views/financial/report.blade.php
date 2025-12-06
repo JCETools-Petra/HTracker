@@ -45,7 +45,7 @@
 
                     <div class="mb-4 p-4 bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded-lg">
                         <p class="text-sm text-blue-800 dark:text-blue-200">
-                            <strong>Periode:</strong> {{ \Carbon\Carbon::create()->month($month)->format('F') }} {{ $year }}
+                            <strong>Periode:</strong> {{ \Carbon\Carbon::create(2000, $month, 1)->format('F') }} {{ $year }}
                         </p>
                     </div>
 
