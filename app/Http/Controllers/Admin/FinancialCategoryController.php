@@ -43,12 +43,10 @@ class FinancialCategoryController extends Controller
         $properties = Property::orderBy('name')->get();
         $propertyId = $request->input('property_id');
 
-        // Get potential parent categories for the selected property
+        // Get potential parent categories for the selected property (hierarchically ordered)
         $parentCategories = [];
         if ($propertyId) {
-            $parentCategories = FinancialCategory::where('property_id', $propertyId)
-                ->orderBy('name')
-                ->get();
+            $parentCategories = FinancialCategory::getHierarchicalListForDropdown((int) $propertyId);
         }
 
         return view('admin.financial-categories.create', compact('properties', 'propertyId', 'parentCategories'));
@@ -115,11 +113,11 @@ class FinancialCategoryController extends Controller
     {
         $properties = Property::orderBy('name')->get();
 
-        // Get potential parent categories (excluding self and descendants)
-        $parentCategories = FinancialCategory::where('property_id', $financialCategory->property_id)
-            ->where('id', '!=', $financialCategory->id)
-            ->orderBy('name')
-            ->get();
+        // Get potential parent categories (excluding self and descendants, hierarchically ordered)
+        $parentCategories = FinancialCategory::getHierarchicalListForDropdown(
+            $financialCategory->property_id,
+            $financialCategory->id
+        );
 
         return view('admin.financial-categories.edit', compact('financialCategory', 'properties', 'parentCategories'));
     }

@@ -75,16 +75,29 @@
                             <select
                                 name="parent_id"
                                 id="parent_id"
-                                class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 rounded-md shadow-sm @error('parent_id') border-red-500 @enderror"
+                                class="mt-1 block w-full border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 rounded-md shadow-sm font-mono text-sm @error('parent_id') border-red-500 @enderror"
                             >
                                 <option value="">Tidak Ada (Root Level)</option>
+                                @php
+                                    $currentRoot = null;
+                                @endphp
                                 @foreach($parentCategories as $parent)
-                                    <option value="{{ $parent->id }}" {{ old('parent_id') == $parent->id ? 'selected' : '' }}>
-                                        {{ $parent->name }}
+                                    @if($parent['level'] === 0 && $currentRoot !== $parent['root'])
+                                        @if($currentRoot !== null)
+                                            </optgroup>
+                                        @endif
+                                        @php $currentRoot = $parent['root']; @endphp
+                                        <optgroup label="{{ $parent['root'] }} ({{ ucfirst($parent['type']) }})">
+                                    @endif
+                                    <option value="{{ $parent['id'] }}" {{ old('parent_id') == $parent['id'] ? 'selected' : '' }}>
+                                        {{ $parent['display'] }}
                                     </option>
                                 @endforeach
+                                @if($currentRoot !== null)
+                                    </optgroup>
+                                @endif
                             </select>
-                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Kosongkan jika ini kategori departemen utama</p>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Kosongkan jika ini kategori departemen utama. Kategori diurutkan secara hierarkis.</p>
                             @error('parent_id')
                                 <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
                             @enderror
