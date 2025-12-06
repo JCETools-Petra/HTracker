@@ -170,6 +170,13 @@ Route::prefix('property')->middleware(['auth', 'verified', 'role:pengguna_proper
     Route::put('/income/{income}', [PropertyIncomeController::class, 'update'])->name('income.update');
     Route::delete('/income/{income}', [PropertyIncomeController::class, 'destroy'])->name('income.destroy');
     Route::post('/occupancy/update', [PropertyIncomeController::class, 'updateOccupancy'])->name('occupancy.update');
+
+    // Financial Budgeting & P&L Routes
+    Route::get('/financial/input-actual', [\App\Http\Controllers\FinancialController::class, 'showInputActual'])->name('financial.input-actual');
+    Route::post('/financial/input-actual', [\App\Http\Controllers\FinancialController::class, 'storeInputActual'])->name('financial.input-actual.store');
+    Route::get('/financial/input-budget', [\App\Http\Controllers\FinancialController::class, 'showInputBudget'])->name('financial.input-budget');
+    Route::post('/financial/input-budget', [\App\Http\Controllers\FinancialController::class, 'storeInputBudget'])->name('financial.input-budget.store');
+    Route::get('/financial/report', [\App\Http\Controllers\FinancialController::class, 'showReport'])->name('financial.report');
 });
 
 // Grup E-commerce
