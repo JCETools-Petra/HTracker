@@ -98,6 +98,15 @@ Route::prefix('admin')->middleware(['auth', 'verified', 'role:admin,owner'])->na
     Route::get('/sales-analytics', [AdminDashboardController::class, 'salesAnalytics'])->name('sales.analytics');
     Route::get('/calendar/unified', [AdminDashboardController::class, 'unifiedCalendar'])->name('calendar.unified');
     Route::get('/calendar/unified/events', [AdminDashboardController::class, 'getUnifiedCalendarEvents'])->name('calendar.unified.events');
+
+    // Financial Budgeting & P&L Routes for Admin
+    Route::get('/financial/select-property', [\App\Http\Controllers\Admin\FinancialController::class, 'selectProperty'])->name('financial.select-property');
+    Route::get('/financial/{property}/input-actual', [\App\Http\Controllers\Admin\FinancialController::class, 'showInputActual'])->name('financial.input-actual');
+    Route::post('/financial/{property}/input-actual', [\App\Http\Controllers\Admin\FinancialController::class, 'storeInputActual'])->name('financial.input-actual.store');
+    Route::get('/financial/{property}/input-budget', [\App\Http\Controllers\Admin\FinancialController::class, 'showInputBudget'])->name('financial.input-budget');
+    Route::post('/financial/{property}/input-budget', [\App\Http\Controllers\Admin\FinancialController::class, 'storeInputBudget'])->name('financial.input-budget.store');
+    Route::get('/financial/{property}/report', [\App\Http\Controllers\Admin\FinancialController::class, 'showReport'])->name('financial.report');
+
     Route::resource('users', AdminUserController::class);
     Route::get('/users-trashed', [AdminUserController::class, 'trashed'])->name('users.trashed');
     Route::post('/users/{user}/restore', [AdminUserController::class, 'restore'])->name('users.restore');
