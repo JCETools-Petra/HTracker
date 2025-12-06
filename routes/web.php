@@ -107,6 +107,9 @@ Route::prefix('admin')->middleware(['auth', 'verified', 'role:admin,owner'])->na
     Route::post('/financial/{property}/input-budget', [\App\Http\Controllers\Admin\FinancialController::class, 'storeInputBudget'])->name('financial.input-budget.store');
     Route::get('/financial/{property}/report', [\App\Http\Controllers\Admin\FinancialController::class, 'showReport'])->name('financial.report');
 
+    // Financial Category Management for Admin
+    Route::resource('financial-categories', \App\Http\Controllers\Admin\FinancialCategoryController::class);
+
     Route::resource('users', AdminUserController::class);
     Route::get('/users-trashed', [AdminUserController::class, 'trashed'])->name('users.trashed');
     Route::post('/users/{user}/restore', [AdminUserController::class, 'restore'])->name('users.restore');
