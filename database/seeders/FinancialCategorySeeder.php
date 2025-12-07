@@ -44,7 +44,10 @@ class FinancialCategorySeeder extends Seeder
         // 2. F&B Revenue (Auto-calculated from DailyIncome)
         $fnbRevenue = $this->createCategory($propertyId, null, 'F&B Revenue', 'FNB_REV', 'revenue', false, $sortOrder++);
 
-        // 3. Other Revenue
+        // 3. MICE Revenue (Auto-calculated from Bookings)
+        $miceRevenue = $this->createCategory($propertyId, null, 'MICE Revenue', 'MICE_REV', 'revenue', false, $sortOrder++);
+
+        // 4. Other Revenue
         $otherRevenue = $this->createCategory($propertyId, null, 'Other Revenue', null, 'revenue', false, $sortOrder++);
 
         // ============================================================

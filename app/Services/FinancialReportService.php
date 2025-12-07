@@ -180,7 +180,7 @@ class FinancialReportService
     }
 
     /**
-     * Get auto-calculated values from DailyIncome based on code.
+     * Get auto-calculated values from DailyIncome or Bookings based on code.
      *
      * @param string $code
      * @param int $propertyId
@@ -190,6 +190,29 @@ class FinancialReportService
      */
     private function getAutoCalculatedValues(string $code, int $propertyId, int $year, int $month): array
     {
+        // Handle MICE revenue from Bookings table
+        if ($code === 'MICE_REV') {
+            // Current month value
+            $current = \App\Models\Booking::where('property_id', $propertyId)
+                ->where('status', 'Booking Pasti')
+                ->whereYear('event_date', $year)
+                ->whereMonth('event_date', $month)
+                ->sum('total_price');
+
+            // Year-to-date value (January to current month)
+            $ytd = \App\Models\Booking::where('property_id', $propertyId)
+                ->where('status', 'Booking Pasti')
+                ->whereYear('event_date', $year)
+                ->whereMonth('event_date', '<=', $month)
+                ->sum('total_price');
+
+            return [
+                'current' => $current ?? 0,
+                'ytd' => $ytd ?? 0,
+            ];
+        }
+
+        // Handle Room and F&B revenue from DailyIncome table
         $field = match ($code) {
             'ROOM_REV' => 'total_rooms_revenue',
             'FNB_REV' => 'total_fb_revenue',
