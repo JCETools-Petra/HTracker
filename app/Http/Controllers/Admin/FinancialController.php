@@ -76,7 +76,8 @@ class FinancialController extends Controller
                 $validated['year'],
                 $validated['month'],
                 $entry['actual_value'],
-                $entry['budget_value'] ?? 0
+                // Jika budget juga diinput di form actual, kirim nilainya, jika tidak kirim null
+                $entry['budget_value'] ?? null 
             );
         }
 
@@ -284,12 +285,13 @@ class FinancialController extends Controller
             $monthlyBudget = $entry['budget_value'] / 12;
 
             for ($month = 1; $month <= 12; $month++) {
+                // PERBAIKAN: Gunakan null untuk actual_value agar tidak menimpa data yang sudah ada
                 $this->financialService->saveEntry(
                     $property->id,
                     $entry['category_id'],
                     $validated['year'],
                     $month,
-                    0, // actual value (will be filled later)
+                    null, // Passing NULL menjaga actual_value yang sudah ada tetap aman
                     $monthlyBudget
                 );
             }

@@ -5,12 +5,15 @@ namespace App\Services;
 use App\Models\FinancialCategory;
 use App\Models\FinancialEntry;
 use App\Models\DailyIncome;
+use App\Models\Booking;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class FinancialReportService
 {
     /**
      * Generate P&L Report for a specific property, year, and month.
+     * Optimized with eager loading to prevent N+1 queries.
      *
      * @param int $propertyId
      * @param int $year
@@ -19,110 +22,110 @@ class FinancialReportService
      */
     public function getPnL(int $propertyId, int $year, int $month): array
     {
-        // Get all root categories (top-level) for this property
+        // 1. Get structure: All root categories with descendants
         $rootCategories = FinancialCategory::forProperty($propertyId)
             ->roots()
             ->with('descendants')
             ->get();
+
+        // 2. Data Fetching Strategy: Batch fetch all needed data at once
+        
+        // Fetch Current Month Entries
+        $entriesCurrent = FinancialEntry::where('property_id', $propertyId)
+            ->where('year', $year)
+            ->where('month', $month)
+            ->get()
+            ->keyBy('financial_category_id');
+
+        // Fetch YTD Entries (Aggregated)
+        $entriesYtd = FinancialEntry::where('property_id', $propertyId)
+            ->where('year', $year)
+            ->where('month', '<=', $month)
+            ->selectRaw('financial_category_id, SUM(actual_value) as total_actual, SUM(budget_value) as total_budget')
+            ->groupBy('financial_category_id')
+            ->get()
+            ->keyBy('financial_category_id');
+
+        // Fetch Auto-Calculated Data (Current Month)
+        $bookingsCurrent = Booking::where('property_id', $propertyId)
+            ->where('status', 'Booking Pasti')
+            ->whereYear('event_date', $year)
+            ->whereMonth('event_date', $month)
+            ->sum('total_price');
+
+        $dailyIncomeCurrent = DailyIncome::where('property_id', $propertyId)
+            ->whereYear('date', $year)
+            ->whereMonth('date', $month)
+            ->first([
+                DB::raw('SUM(total_rooms_revenue) as room_rev'),
+                DB::raw('SUM(total_fb_revenue) as fb_rev')
+            ]);
+
+        // Fetch Auto-Calculated Data (YTD)
+        $bookingsYtd = Booking::where('property_id', $propertyId)
+            ->where('status', 'Booking Pasti')
+            ->whereYear('event_date', $year)
+            ->whereMonth('event_date', '<=', $month)
+            ->sum('total_price');
+
+        $dailyIncomeYtd = DailyIncome::where('property_id', $propertyId)
+            ->whereYear('date', $year)
+            ->whereMonth('date', '<=', $month)
+            ->first([
+                DB::raw('SUM(total_rooms_revenue) as room_rev'),
+                DB::raw('SUM(total_fb_revenue) as fb_rev')
+            ]);
+
+        // Prepare Context for Recursive Function
+        $context = [
+            'entries_current' => $entriesCurrent,
+            'entries_ytd' => $entriesYtd,
+            'auto_values' => [
+                'current' => [
+                    'MICE_REV' => $bookingsCurrent ?? 0,
+                    'ROOM_REV' => $dailyIncomeCurrent->room_rev ?? 0,
+                    'FNB_REV' => $dailyIncomeCurrent->fb_rev ?? 0,
+                ],
+                'ytd' => [
+                    'MICE_REV' => $bookingsYtd ?? 0,
+                    'ROOM_REV' => $dailyIncomeYtd->room_rev ?? 0,
+                    'FNB_REV' => $dailyIncomeYtd->fb_rev ?? 0,
+                ]
+            ]
+        ];
 
         $result = [
             'property_id' => $propertyId,
             'year' => $year,
             'month' => $month,
             'categories' => [],
-            'totals' => [
-                'total_revenue' => [
-                    'actual_current' => 0,
-                    'budget_current' => 0,
-                    'variance_current' => 0,
-                    'actual_ytd' => 0,
-                    'budget_ytd' => 0,
-                    'variance_ytd' => 0,
-                ],
-                'total_expenses' => [
-                    'actual_current' => 0,
-                    'budget_current' => 0,
-                    'variance_current' => 0,
-                    'actual_ytd' => 0,
-                    'budget_ytd' => 0,
-                    'variance_ytd' => 0,
-                ],
-                'gross_operating_profit' => [
-                    'actual_current' => 0,
-                    'budget_current' => 0,
-                    'variance_current' => 0,
-                    'actual_ytd' => 0,
-                    'budget_ytd' => 0,
-                    'variance_ytd' => 0,
-                ],
-            ],
+            'totals' => $this->getEmptyTotalsStructure(),
         ];
 
-        // Process each root category
+        // Process Categories
         foreach ($rootCategories as $category) {
-            $categoryData = $this->processCategoryRecursive($category, $propertyId, $year, $month);
+            $categoryData = $this->processCategoryRecursive($category, $context);
             $result['categories'][] = $categoryData;
 
-            // Accumulate totals
+            // Accumulate Totals
             if ($category->type === 'revenue') {
-                $result['totals']['total_revenue']['actual_current'] += $categoryData['actual_current'];
-                $result['totals']['total_revenue']['budget_current'] += $categoryData['budget_current'];
-                $result['totals']['total_revenue']['actual_ytd'] += $categoryData['actual_ytd'];
-                $result['totals']['total_revenue']['budget_ytd'] += $categoryData['budget_ytd'];
+                $this->accumulateTotals($result['totals']['total_revenue'], $categoryData);
             } elseif ($category->type === 'expense') {
-                $result['totals']['total_expenses']['actual_current'] += $categoryData['actual_current'];
-                $result['totals']['total_expenses']['budget_current'] += $categoryData['budget_current'];
-                $result['totals']['total_expenses']['actual_ytd'] += $categoryData['actual_ytd'];
-                $result['totals']['total_expenses']['budget_ytd'] += $categoryData['budget_ytd'];
+                $this->accumulateTotals($result['totals']['total_expenses'], $categoryData);
             }
         }
 
-        // Calculate variances for totals
-        $result['totals']['total_revenue']['variance_current'] =
-            $result['totals']['total_revenue']['actual_current'] - $result['totals']['total_revenue']['budget_current'];
-        $result['totals']['total_revenue']['variance_ytd'] =
-            $result['totals']['total_revenue']['actual_ytd'] - $result['totals']['total_revenue']['budget_ytd'];
-
-        $result['totals']['total_expenses']['variance_current'] =
-            $result['totals']['total_expenses']['actual_current'] - $result['totals']['total_expenses']['budget_current'];
-        $result['totals']['total_expenses']['variance_ytd'] =
-            $result['totals']['total_expenses']['actual_ytd'] - $result['totals']['total_expenses']['budget_ytd'];
-
-        // Calculate Gross Operating Profit (Revenue - Expenses)
-        $result['totals']['gross_operating_profit']['actual_current'] =
-            $result['totals']['total_revenue']['actual_current'] - $result['totals']['total_expenses']['actual_current'];
-        $result['totals']['gross_operating_profit']['budget_current'] =
-            $result['totals']['total_revenue']['budget_current'] - $result['totals']['total_expenses']['budget_current'];
-        $result['totals']['gross_operating_profit']['variance_current'] =
-            $result['totals']['gross_operating_profit']['actual_current'] - $result['totals']['gross_operating_profit']['budget_current'];
-
-        $result['totals']['gross_operating_profit']['actual_ytd'] =
-            $result['totals']['total_revenue']['actual_ytd'] - $result['totals']['total_expenses']['actual_ytd'];
-        $result['totals']['gross_operating_profit']['budget_ytd'] =
-            $result['totals']['total_revenue']['budget_ytd'] - $result['totals']['total_expenses']['budget_ytd'];
-        $result['totals']['gross_operating_profit']['variance_ytd'] =
-            $result['totals']['gross_operating_profit']['actual_ytd'] - $result['totals']['gross_operating_profit']['budget_ytd'];
+        // Final Calculations
+        $this->calculateVariances($result['totals']);
 
         return $result;
     }
 
     /**
-     * Process a category and its children recursively.
-     *
-     * @param FinancialCategory $category
-     * @param int $propertyId
-     * @param int $year
-     * @param int $month
-     * @param int $level
-     * @return array
+     * Recursive processor that uses in-memory context data instead of DB queries.
      */
-    private function processCategoryRecursive(
-        FinancialCategory $category,
-        int $propertyId,
-        int $year,
-        int $month,
-        int $level = 0
-    ): array {
+    private function processCategoryRecursive(FinancialCategory $category, array $context, int $level = 0): array
+    {
         $data = [
             'id' => $category->id,
             'name' => $category->name,
@@ -134,45 +137,46 @@ class FinancialReportService
             'allows_input' => $category->allowsManualInput(),
             'actual_current' => 0,
             'budget_current' => 0,
-            'variance_current' => 0,
             'actual_ytd' => 0,
             'budget_ytd' => 0,
+            'variance_current' => 0,
             'variance_ytd' => 0,
             'children' => [],
         ];
 
-        // If category has children, recursively process them
         if ($category->hasChildren()) {
             foreach ($category->children as $child) {
-                $childData = $this->processCategoryRecursive($child, $propertyId, $year, $month, $level + 1);
+                $childData = $this->processCategoryRecursive($child, $context, $level + 1);
                 $data['children'][] = $childData;
 
-                // Sum up children values
+                // Accumulate children values
                 $data['actual_current'] += $childData['actual_current'];
                 $data['budget_current'] += $childData['budget_current'];
                 $data['actual_ytd'] += $childData['actual_ytd'];
                 $data['budget_ytd'] += $childData['budget_ytd'];
             }
         } else {
-            // Leaf node - get actual values
-            if ($category->code) {
-                // Auto-calculated from DailyIncome
-                $values = $this->getAutoCalculatedValues($category->code, $propertyId, $year, $month);
-                $data['actual_current'] = $values['current'];
-                $data['actual_ytd'] = $values['ytd'];
-                $data['budget_current'] = 0; // Auto-calculated categories don't have budget
+            // Leaf Node Logic
+            if ($category->code && isset($context['auto_values']['current'][$category->code])) {
+                // Use Auto Calculated Values
+                $data['actual_current'] = $context['auto_values']['current'][$category->code];
+                $data['actual_ytd'] = $context['auto_values']['ytd'][$category->code];
+                $data['budget_current'] = 0; 
                 $data['budget_ytd'] = 0;
             } else {
-                // Manual input from financial_entries
-                $values = $this->getManualEntryValues($category->id, $propertyId, $year, $month);
-                $data['actual_current'] = $values['actual_current'];
-                $data['budget_current'] = $values['budget_current'];
-                $data['actual_ytd'] = $values['actual_ytd'];
-                $data['budget_ytd'] = $values['budget_ytd'];
+                // Use Manual Entries from Map
+                $entryCurrent = $context['entries_current']->get($category->id);
+                $entryYtd = $context['entries_ytd']->get($category->id);
+
+                $data['actual_current'] = $entryCurrent ? $entryCurrent->actual_value : 0;
+                $data['budget_current'] = $entryCurrent ? $entryCurrent->budget_value : 0;
+                
+                $data['actual_ytd'] = $entryYtd ? $entryYtd->total_actual : 0;
+                $data['budget_ytd'] = $entryYtd ? $entryYtd->total_budget : 0;
             }
         }
 
-        // Calculate variances
+        // Calculate Variances
         $data['variance_current'] = $data['actual_current'] - $data['budget_current'];
         $data['variance_ytd'] = $data['actual_ytd'] - $data['budget_ytd'];
 
@@ -180,109 +184,164 @@ class FinancialReportService
     }
 
     /**
-     * Get auto-calculated values from DailyIncome or Bookings based on code.
-     *
-     * @param string $code
-     * @param int $propertyId
-     * @param int $year
-     * @param int $month
-     * @return array
+     * Get chart data optimized using raw aggregations.
      */
-    private function getAutoCalculatedValues(string $code, int $propertyId, int $year, int $month): array
+    public function getChartData(int $propertyId, int $year, int $month): array
     {
-        // Handle MICE revenue from Bookings table
-        if ($code === 'MICE_REV') {
-            // Current month value
-            $current = \App\Models\Booking::where('property_id', $propertyId)
-                ->where('status', 'Booking Pasti')
-                ->whereYear('event_date', $year)
-                ->whereMonth('event_date', $month)
-                ->sum('total_price');
+        $startDate = Carbon::create($year, $month, 1)->subMonths(11)->startOfMonth();
+        $endDate = Carbon::create($year, $month, 1)->endOfMonth();
 
-            // Year-to-date value (January to current month)
-            $ytd = \App\Models\Booking::where('property_id', $propertyId)
-                ->where('status', 'Booking Pasti')
-                ->whereYear('event_date', $year)
-                ->whereMonth('event_date', '<=', $month)
-                ->sum('total_price');
+        // 1. Data Manual (Financial Entries) - Mengambil Budget & Actual (terutama Expense)
+        // Filter: Hanya ambil yang BUKAN kategori otomatis agar tidak double counting
+        $entriesData = FinancialEntry::query()
+            ->join('financial_categories', 'financial_entries.financial_category_id', '=', 'financial_categories.id')
+            ->where('financial_entries.property_id', $propertyId)
+            ->whereBetween(DB::raw("CAST(CONCAT(year, '-', month, '-01') AS DATE)"), [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->where(function($q) {
+                $q->whereNull('financial_categories.code')
+                  ->orWhereNotIn('financial_categories.code', ['ROOM_REV', 'FNB_REV', 'MICE_REV']);
+            })
+            ->selectRaw('
+                year, 
+                month, 
+                financial_categories.type,
+                SUM(actual_value) as total_actual, 
+                SUM(budget_value) as total_budget
+            ')
+            ->groupBy('year', 'month', 'financial_categories.type')
+            ->get();
 
-            return [
-                'current' => $current ?? 0,
-                'ytd' => $ytd ?? 0,
+        // 2. Data Otomatis: Daily Income (Room & F&B Revenue)
+        $dailyIncomeData = DailyIncome::where('property_id', $propertyId)
+            ->whereBetween('date', [$startDate, $endDate])
+            ->selectRaw('
+                YEAR(date) as year, 
+                MONTH(date) as month, 
+                SUM(total_rooms_revenue + total_fb_revenue) as total_auto_revenue
+            ')
+            ->groupByRaw('YEAR(date), MONTH(date)')
+            ->get();
+
+        // 3. Data Otomatis: MICE (Bookings)
+        $bookingData = Booking::where('property_id', $propertyId)
+            ->where('status', 'Booking Pasti')
+            ->whereBetween('event_date', [$startDate, $endDate])
+            ->selectRaw('
+                YEAR(event_date) as year, 
+                MONTH(event_date) as month, 
+                SUM(total_price) as total_mice_revenue
+            ')
+            ->groupByRaw('YEAR(event_date), MONTH(event_date)')
+            ->get();
+
+        // 4. Gabungkan Semua Data (Merge)
+        $monthlyData = [];
+        for ($i = 11; $i >= 0; $i--) {
+            $date = Carbon::create($year, $month, 1)->subMonths($i);
+            $y = $date->year;
+            $m = $date->month;
+
+            // Ambil Data Manual
+            $manualRev = $entriesData->where('year', $y)->where('month', $m)->where('type', 'revenue')->first();
+            $manualExp = $entriesData->where('year', $y)->where('month', $m)->where('type', 'expense')->first();
+
+            // Ambil Data Otomatis
+            $autoDaily = $dailyIncomeData->where('year', $y)->where('month', $m)->first();
+            $autoMice = $bookingData->where('year', $y)->where('month', $m)->first();
+
+            // Hitung Total
+            // Revenue = Manual + Auto Room/F&B + Auto MICE
+            $revenueActual = ($manualRev->total_actual ?? 0) 
+                           + ($autoDaily->total_auto_revenue ?? 0) 
+                           + ($autoMice->total_mice_revenue ?? 0);
+            
+            // Budget (Biasanya hanya ada di kategori manual, kecuali ada sistem budget auto)
+            $revenueBudget = ($manualRev->total_budget ?? 0); 
+
+            $expenseActual = ($manualExp->total_actual ?? 0);
+            $expenseBudget = ($manualExp->total_budget ?? 0);
+
+            $monthlyData[] = [
+                'month' => $date->format('M Y'),
+                'revenue_actual' => $revenueActual,
+                'revenue_budget' => $revenueBudget,
+                'expense_actual' => $expenseActual,
+                'expense_budget' => $expenseBudget,
+                'gop_actual' => $revenueActual - $expenseActual,
+                'gop_budget' => $revenueBudget - $expenseBudget,
             ];
         }
 
-        // Handle Room and F&B revenue from DailyIncome table
-        $field = match ($code) {
-            'ROOM_REV' => 'total_rooms_revenue',
-            'FNB_REV' => 'total_fb_revenue',
-            default => null,
-        };
-
-        if (!$field) {
-            return ['current' => 0, 'ytd' => 0];
-        }
-
-        // Current month value
-        $current = DailyIncome::where('property_id', $propertyId)
-            ->whereYear('date', $year)
-            ->whereMonth('date', $month)
-            ->sum($field);
-
-        // Year-to-date value (January to current month)
-        $ytd = DailyIncome::where('property_id', $propertyId)
-            ->whereYear('date', $year)
-            ->whereMonth('date', '<=', $month)
-            ->sum($field);
+        // Breakdown tetap menggunakan logika PnL bulan ini
+        $currentPnL = $this->getPnL($propertyId, $year, $month);
 
         return [
-            'current' => $current ?? 0,
-            'ytd' => $ytd ?? 0,
+            'monthly_trend' => $monthlyData,
+            'revenue_breakdown' => $this->extractChartBreakdown($currentPnL, 'revenue'),
+            'expense_breakdown' => $this->extractChartBreakdown($currentPnL, 'expense'),
         ];
     }
 
     /**
-     * Get manual entry values from financial_entries.
-     *
-     * @param int $categoryId
-     * @param int $propertyId
-     * @param int $year
-     * @param int $month
-     * @return array
+     * Helper to extract chart breakdown from PnL data.
      */
-    private function getManualEntryValues(int $categoryId, int $propertyId, int $year, int $month): array
+    private function extractChartBreakdown(array $pnlData, string $type): array
     {
-        // Current month entry
-        $currentEntry = FinancialEntry::where('financial_category_id', $categoryId)
-            ->where('property_id', $propertyId)
-            ->where('year', $year)
-            ->where('month', $month)
-            ->first();
+        $breakdown = [];
+        foreach ($pnlData['categories'] as $category) {
+            if ($category['type'] === $type && $category['actual_current'] > 0) {
+                $breakdown[] = [
+                    'name' => $category['name'],
+                    'value' => $category['actual_current'],
+                ];
+            }
+        }
+        return $breakdown;
+    }
 
-        // YTD entries (January to current month)
-        $ytdEntries = FinancialEntry::where('financial_category_id', $categoryId)
-            ->where('property_id', $propertyId)
-            ->where('year', $year)
-            ->where('month', '<=', $month)
-            ->get();
+    /**
+     * Save or update financial entry safely.
+     * Prevents overwriting actuals when updating budget and vice versa.
+     */
+    public function saveEntry(
+        int $propertyId,
+        int $categoryId,
+        int $year,
+        int $month,
+        ?float $actualValue = null,
+        ?float $budgetValue = null
+    ): FinancialEntry {
+        $entry = FinancialEntry::firstOrNew([
+            'property_id' => $propertyId,
+            'financial_category_id' => $categoryId,
+            'year' => $year,
+            'month' => $month,
+        ]);
 
-        return [
-            'actual_current' => $currentEntry->actual_value ?? 0,
-            'budget_current' => $currentEntry->budget_value ?? 0,
-            'actual_ytd' => $ytdEntries->sum('actual_value') ?? 0,
-            'budget_ytd' => $ytdEntries->sum('budget_value') ?? 0,
-        ];
+        // Only update fields that are explicitly provided (not null)
+        if (!is_null($actualValue)) {
+            $entry->actual_value = $actualValue;
+        }
+
+        if (!is_null($budgetValue)) {
+            $entry->budget_value = $budgetValue;
+        }
+
+        // Set defaults for new records if values are missing
+        if (!$entry->exists) {
+            $entry->actual_value = $entry->actual_value ?? 0;
+            $entry->budget_value = $entry->budget_value ?? 0;
+        }
+
+        $entry->save();
+        return $entry;
     }
 
     /**
      * Get categories for input form, grouped by department.
-     *
-     * @param int $propertyId
-     * @return array
      */
     public function getCategoriesForInput(int $propertyId): array
     {
-        // Get all root expense categories (departments)
         $departments = FinancialCategory::forProperty($propertyId)
             ->where('type', 'expense')
             ->roots()
@@ -307,9 +366,6 @@ class FinancialReportService
 
     /**
      * Get leaf categories that allow manual input recursively.
-     *
-     * @param FinancialCategory $category
-     * @return array
      */
     private function getInputCategoriesRecursive(FinancialCategory $category): array
     {
@@ -332,10 +388,7 @@ class FinancialReportService
     }
 
     /**
-     * Get the full path of a category (parent > child > grandchild).
-     *
-     * @param FinancialCategory $category
-     * @return string
+     * Get the full path of a category.
      */
     private function getCategoryPath(FinancialCategory $category): string
     {
@@ -351,120 +404,32 @@ class FinancialReportService
     }
 
     /**
-     * Save or update financial entry.
-     *
-     * @param int $propertyId
-     * @param int $categoryId
-     * @param int $year
-     * @param int $month
-     * @param float $actualValue
-     * @param float $budgetValue
-     * @return FinancialEntry
-     */
-    public function saveEntry(
-        int $propertyId,
-        int $categoryId,
-        int $year,
-        int $month,
-        float $actualValue = 0,
-        float $budgetValue = 0
-    ): FinancialEntry {
-        return FinancialEntry::updateOrCreate(
-            [
-                'property_id' => $propertyId,
-                'financial_category_id' => $categoryId,
-                'year' => $year,
-                'month' => $month,
-            ],
-            [
-                'actual_value' => $actualValue,
-                'budget_value' => $budgetValue,
-            ]
-        );
-    }
-
-    /**
-     * Get chart data for P&L visualization.
-     *
-     * @param int $propertyId
-     * @param int $year
-     * @param int $month
-     * @return array
-     */
-    public function getChartData(int $propertyId, int $year, int $month): array
-    {
-        $monthlyData = [];
-
-        // Get data for last 12 months
-        for ($i = 11; $i >= 0; $i--) {
-            $date = \Carbon\Carbon::create($year, $month, 1)->subMonths($i);
-            $pnl = $this->getPnL($propertyId, $date->year, $date->month);
-
-            $monthlyData[] = [
-                'month' => $date->format('M Y'),
-                'revenue_actual' => $pnl['totals']['total_revenue']['actual_current'],
-                'revenue_budget' => $pnl['totals']['total_revenue']['budget_current'],
-                'expense_actual' => $pnl['totals']['total_expenses']['actual_current'],
-                'expense_budget' => $pnl['totals']['total_expenses']['budget_current'],
-                'gop_actual' => $pnl['totals']['gross_operating_profit']['actual_current'],
-                'gop_budget' => $pnl['totals']['gross_operating_profit']['budget_current'],
-            ];
-        }
-
-        // Revenue breakdown for current month
-        $pnl = $this->getPnL($propertyId, $year, $month);
-        $revenueBreakdown = [];
-        foreach ($pnl['categories'] as $category) {
-            if ($category['type'] === 'revenue' && $category['actual_current'] > 0) {
-                $revenueBreakdown[] = [
-                    'name' => $category['name'],
-                    'value' => $category['actual_current'],
-                ];
-            }
-        }
-
-        // Expense breakdown by department
-        $expenseBreakdown = [];
-        foreach ($pnl['categories'] as $category) {
-            if ($category['type'] === 'expense' && $category['actual_current'] > 0 && $category['level'] === 0) {
-                $expenseBreakdown[] = [
-                    'name' => $category['name'],
-                    'value' => $category['actual_current'],
-                ];
-            }
-        }
-
-        return [
-            'monthly_trend' => $monthlyData,
-            'revenue_breakdown' => $revenueBreakdown,
-            'expense_breakdown' => $expenseBreakdown,
-        ];
-    }
-
-    /**
-     * Get comparative analysis (MoM, YoY).
-     *
-     * @param int $propertyId
-     * @param int $year
-     * @param int $month
-     * @return array
+     * Get comparative analysis (MoM, YoY) with MICE breakdown.
      */
     public function getComparativeAnalysis(int $propertyId, int $year, int $month): array
     {
         $currentPnL = $this->getPnL($propertyId, $year, $month);
 
-        // Month-over-Month (previous month)
-        $prevMonth = \Carbon\Carbon::create($year, $month, 1)->subMonth();
+        $prevMonth = Carbon::create($year, $month, 1)->subMonth();
         $prevMonthPnL = $this->getPnL($propertyId, $prevMonth->year, $prevMonth->month);
 
-        // Year-over-Year (same month last year)
         $lastYear = $year - 1;
         $lastYearPnL = $this->getPnL($propertyId, $lastYear, $month);
 
+        // Helper to find MICE value
+        $getMiceValue = function ($pnlData) {
+            return $this->findCategoryValueRecursive($pnlData['categories'], 'MICE_REV');
+        };
+
+        $currentMice = $getMiceValue($currentPnL);
+        $prevMice = $getMiceValue($prevMonthPnL);
+        $lastYearMice = $getMiceValue($lastYearPnL);
+
         return [
             'current' => [
-                'period' => \Carbon\Carbon::create($year, $month, 1)->format('F Y'),
+                'period' => Carbon::create($year, $month, 1)->format('F Y'),
                 'revenue' => $currentPnL['totals']['total_revenue']['actual_current'],
+                'mice' => $currentMice,
                 'expense' => $currentPnL['totals']['total_expenses']['actual_current'],
                 'gop' => $currentPnL['totals']['gross_operating_profit']['actual_current'],
             ],
@@ -475,6 +440,8 @@ class FinancialReportService
                     $prevMonthPnL['totals']['total_revenue']['actual_current'],
                     $currentPnL['totals']['total_revenue']['actual_current']
                 ),
+                'mice' => $prevMice,
+                'mice_change' => $this->calculatePercentageChange($prevMice, $currentMice),
                 'expense' => $prevMonthPnL['totals']['total_expenses']['actual_current'],
                 'expense_change' => $this->calculatePercentageChange(
                     $prevMonthPnL['totals']['total_expenses']['actual_current'],
@@ -487,12 +454,14 @@ class FinancialReportService
                 ),
             ],
             'yoy' => [
-                'period' => \Carbon\Carbon::create($lastYear, $month, 1)->format('F Y'),
+                'period' => Carbon::create($lastYear, $month, 1)->format('F Y'),
                 'revenue' => $lastYearPnL['totals']['total_revenue']['actual_current'],
                 'revenue_change' => $this->calculatePercentageChange(
                     $lastYearPnL['totals']['total_revenue']['actual_current'],
                     $currentPnL['totals']['total_revenue']['actual_current']
                 ),
+                'mice' => $lastYearMice,
+                'mice_change' => $this->calculatePercentageChange($lastYearMice, $currentMice),
                 'expense' => $lastYearPnL['totals']['total_expenses']['actual_current'],
                 'expense_change' => $this->calculatePercentageChange(
                     $lastYearPnL['totals']['total_expenses']['actual_current'],
@@ -508,11 +477,24 @@ class FinancialReportService
     }
 
     /**
-     * Calculate percentage change.
-     *
-     * @param float $oldValue
-     * @param float $newValue
-     * @return float
+     * Helper to find value by category CODE recursively
+     */
+    private function findCategoryValueRecursive(array $categories, string $code): float
+    {
+        foreach ($categories as $category) {
+            if (($category['code'] ?? '') === $code) {
+                return $category['actual_current'];
+            }
+            if (!empty($category['children'])) {
+                $val = $this->findCategoryValueRecursive($category['children'], $code);
+                if ($val > 0) return $val;
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * Calculate percentage change helper.
      */
     private function calculatePercentageChange(float $oldValue, float $newValue): float
     {
@@ -523,7 +505,8 @@ class FinancialReportService
     }
 
     /**
-     * Calculate KPIs (Key Performance Indicators).
+     * Calculate KPIs.
+     * UPDATED: Disamakan dengan Logic Dashboard Admin (RevPAR = Pure Room Revenue / Available Rooms).
      *
      * @param int $propertyId
      * @param int $year
@@ -534,29 +517,40 @@ class FinancialReportService
     {
         $pnl = $this->getPnL($propertyId, $year, $month);
 
-        $revenue = $pnl['totals']['total_revenue']['actual_current'];
+        $totalRevenue = $pnl['totals']['total_revenue']['actual_current'];
         $expense = $pnl['totals']['total_expenses']['actual_current'];
         $gop = $pnl['totals']['gross_operating_profit']['actual_current'];
 
-        // Calculate labor cost (all payroll categories)
+        // 1. Cari Room Revenue Murni (Sesuai Dashboard yang menggunakan kolom total_rooms_revenue)
+        $roomRevenue = 0;
+        
+        $findRoomRevenueRecursive = function($categories) use (&$findRoomRevenueRecursive, &$roomRevenue) {
+            foreach ($categories as $category) {
+                if (($category['code'] ?? '') === 'ROOM_REV') {
+                    $roomRevenue += $category['actual_current'];
+                }
+                if (!empty($category['children'])) {
+                    $findRoomRevenueRecursive($category['children']);
+                }
+            }
+        };
+        $findRoomRevenueRecursive($pnl['categories']);
+
+        // 2. Logic F&B
         $laborCost = 0;
+        $fnbRevenue = 0;
+        $fnbCost = 0;
+
         foreach ($pnl['categories'] as $category) {
             if ($category['type'] === 'expense') {
                 $laborCost += $this->sumPayrollRecursive($category);
             }
-        }
-
-        // Get F&B revenue and cost
-        $fnbRevenue = 0;
-        $fnbCost = 0;
-        foreach ($pnl['categories'] as $category) {
-            if ($category['code'] === 'FNB_REV') {
+            if (($category['code'] ?? '') === 'FNB_REV') {
                 $fnbRevenue = $category['actual_current'];
             }
-            if (in_array($category['name'], ['F&B Product (Kitchen)', 'F&B Service'])) {
-                // Get COGS from children
+            if (in_array($category['name'], ['F&B Product (Kitchen)', 'F&B Service', 'Food & Beverage'])) {
                 foreach ($category['children'] ?? [] as $child) {
-                    if (str_contains(strtolower($child['name']), 'cogs') ||
+                    if (str_contains(strtolower($child['name']), 'cogs') || 
                         str_contains(strtolower($child['name']), 'cost')) {
                         $fnbCost += $child['actual_current'];
                     }
@@ -564,71 +558,56 @@ class FinancialReportService
             }
         }
 
-        // Get room count from property (assuming it's available)
         $property = \App\Models\Property::find($propertyId);
         $roomCount = $property->total_rooms ?? 1;
-        $daysInMonth = \Carbon\Carbon::create($year, $month, 1)->daysInMonth;
+        $daysInMonth = Carbon::create($year, $month, 1)->daysInMonth;
+        $availableRooms = $roomCount * $daysInMonth;
 
         return [
-            'gop_percentage' => $revenue > 0 ? ($gop / $revenue) * 100 : 0,
-            'labor_cost_percentage' => $revenue > 0 ? ($laborCost / $revenue) * 100 : 0,
+            'gop_percentage' => $totalRevenue > 0 ? ($gop / $totalRevenue) * 100 : 0,
+            'labor_cost_percentage' => $totalRevenue > 0 ? ($laborCost / $totalRevenue) * 100 : 0,
             'labor_cost' => $laborCost,
             'fnb_cost_percentage' => $fnbRevenue > 0 ? ($fnbCost / $fnbRevenue) * 100 : 0,
-            'expense_per_available_room' => $roomCount > 0 ? $expense / ($roomCount * $daysInMonth) : 0,
-            'revenue_per_available_room' => $roomCount > 0 ? $revenue / ($roomCount * $daysInMonth) : 0,
+            'expense_per_available_room' => $availableRooms > 0 ? $expense / $availableRooms : 0,
+            
+            // PERBAIKAN: RevPAR sekarang menggunakan Room Revenue Murni (Strict)
+            // Ini untuk menyamakan dengan Dashboard Admin yang menggunakan rumus: totalRoomRevenue / totalAvailableRooms
+            'revenue_per_available_room' => $availableRooms > 0 ? $roomRevenue / $availableRooms : 0,
         ];
     }
 
-    /**
-     * Sum all payroll costs recursively.
-     *
-     * @param array $category
-     * @return float
-     */
     private function sumPayrollRecursive(array $category): float
     {
         $total = 0;
-
         if ($category['is_payroll']) {
             $total += $category['actual_current'];
         }
-
         foreach ($category['children'] ?? [] as $child) {
             $total += $this->sumPayrollRecursive($child);
         }
-
         return $total;
     }
 
     /**
      * Get forecast based on historical trends.
-     *
-     * @param int $propertyId
-     * @param int $year
-     * @param int $month
-     * @param int $forecastMonths
-     * @return array
      */
     public function getForecast(int $propertyId, int $year, int $month, int $forecastMonths = 3): array
     {
-        // Get last 12 months data for trend analysis
+        // Get last 12 months for trend analysis using getChartData (optimized) logic 
+        $chartData = $this->getChartData($propertyId, $year, $month);
         $historicalData = [];
-        for ($i = 11; $i >= 0; $i--) {
-            $date = \Carbon\Carbon::create($year, $month, 1)->subMonths($i);
-            $pnl = $this->getPnL($propertyId, $date->year, $date->month);
+        
+        foreach ($chartData['monthly_trend'] as $data) {
             $historicalData[] = [
-                'revenue' => $pnl['totals']['total_revenue']['actual_current'],
-                'expense' => $pnl['totals']['total_expenses']['actual_current'],
-                'gop' => $pnl['totals']['gross_operating_profit']['actual_current'],
+                'revenue' => $data['revenue_actual'],
+                'expense' => $data['expense_actual'],
             ];
         }
 
-        // Simple linear regression forecast
         $forecast = [];
         for ($i = 1; $i <= $forecastMonths; $i++) {
-            $date = \Carbon\Carbon::create($year, $month, 1)->addMonths($i);
+            $date = Carbon::create($year, $month, 1)->addMonths($i);
 
-            // Calculate average growth rate
             $revenueGrowth = $this->calculateAverageGrowth(array_column($historicalData, 'revenue'));
             $expenseGrowth = $this->calculateAverageGrowth(array_column($historicalData, 'expense'));
 
@@ -638,48 +617,34 @@ class FinancialReportService
             $forecastRevenue = $lastRevenue * (1 + $revenueGrowth);
             $forecastExpense = $lastExpense * (1 + $expenseGrowth);
 
+            $historicalData[] = ['revenue' => $forecastRevenue, 'expense' => $forecastExpense];
+
             $forecast[] = [
                 'month' => $date->format('F Y'),
                 'revenue_forecast' => $forecastRevenue,
                 'expense_forecast' => $forecastExpense,
                 'gop_forecast' => $forecastRevenue - $forecastExpense,
-                'confidence' => 'medium', // Simplified confidence level
+                'confidence' => 'medium',
             ];
         }
 
         return $forecast;
     }
 
-    /**
-     * Calculate average growth rate.
-     *
-     * @param array $values
-     * @return float
-     */
     private function calculateAverageGrowth(array $values): float
     {
-        if (count($values) < 2) {
-            return 0;
-        }
-
+        if (count($values) < 2) return 0;
         $growthRates = [];
         for ($i = 1; $i < count($values); $i++) {
             if ($values[$i - 1] > 0) {
                 $growthRates[] = ($values[$i] - $values[$i - 1]) / $values[$i - 1];
             }
         }
-
         return count($growthRates) > 0 ? array_sum($growthRates) / count($growthRates) : 0;
     }
 
     /**
-     * Get budget alerts (categories exceeding budget).
-     *
-     * @param int $propertyId
-     * @param int $year
-     * @param int $month
-     * @param float $threshold
-     * @return array
+     * Get budget alerts.
      */
     public function getBudgetAlerts(int $propertyId, int $year, int $month, float $threshold = 10): array
     {
@@ -693,16 +658,8 @@ class FinancialReportService
         return $alerts;
     }
 
-    /**
-     * Check category and children for budget alerts recursively.
-     *
-     * @param array $category
-     * @param array &$alerts
-     * @param float $threshold
-     */
     private function checkCategoryAlerts(array $category, array &$alerts, float $threshold): void
     {
-        // Only check expense categories with budget
         if ($category['type'] === 'expense' && $category['budget_current'] > 0) {
             $variance = $category['actual_current'] - $category['budget_current'];
             $variancePercentage = ($variance / $category['budget_current']) * 100;
@@ -719,7 +676,6 @@ class FinancialReportService
             }
         }
 
-        // Check children
         foreach ($category['children'] ?? [] as $child) {
             $this->checkCategoryAlerts($child, $alerts, $threshold);
         }
@@ -727,11 +683,6 @@ class FinancialReportService
 
     /**
      * Get dashboard summary data.
-     *
-     * @param int $propertyId
-     * @param int $year
-     * @param int $month
-     * @return array
      */
     public function getDashboardSummary(int $propertyId, int $year, int $month): array
     {
@@ -767,5 +718,51 @@ class FinancialReportService
             'alerts_count' => count($alerts),
             'high_alerts_count' => count(array_filter($alerts, fn($a) => $a['level'] === 'high')),
         ];
+    }
+
+    // --- Helper Functions ---
+
+    private function getEmptyTotalsStructure(): array
+    {
+        return [
+            'total_revenue' => [
+                'actual_current' => 0, 'budget_current' => 0, 'variance_current' => 0,
+                'actual_ytd' => 0, 'budget_ytd' => 0, 'variance_ytd' => 0,
+            ],
+            'total_expenses' => [
+                'actual_current' => 0, 'budget_current' => 0, 'variance_current' => 0,
+                'actual_ytd' => 0, 'budget_ytd' => 0, 'variance_ytd' => 0,
+            ],
+            'gross_operating_profit' => [
+                'actual_current' => 0, 'budget_current' => 0, 'variance_current' => 0,
+                'actual_ytd' => 0, 'budget_ytd' => 0, 'variance_ytd' => 0,
+            ],
+        ];
+    }
+
+    private function accumulateTotals(array &$target, array $source): void
+    {
+        $target['actual_current'] += $source['actual_current'];
+        $target['budget_current'] += $source['budget_current'];
+        $target['actual_ytd'] += $source['actual_ytd'];
+        $target['budget_ytd'] += $source['budget_ytd'];
+    }
+
+    private function calculateVariances(array &$totals): void
+    {
+        // Revenue & Expenses
+        foreach (['total_revenue', 'total_expenses'] as $type) {
+            $totals[$type]['variance_current'] = $totals[$type]['actual_current'] - $totals[$type]['budget_current'];
+            $totals[$type]['variance_ytd'] = $totals[$type]['actual_ytd'] - $totals[$type]['budget_ytd'];
+        }
+
+        // GOP
+        $totals['gross_operating_profit']['actual_current'] = $totals['total_revenue']['actual_current'] - $totals['total_expenses']['actual_current'];
+        $totals['gross_operating_profit']['budget_current'] = $totals['total_revenue']['budget_current'] - $totals['total_expenses']['budget_current'];
+        $totals['gross_operating_profit']['variance_current'] = $totals['gross_operating_profit']['actual_current'] - $totals['gross_operating_profit']['budget_current'];
+
+        $totals['gross_operating_profit']['actual_ytd'] = $totals['total_revenue']['actual_ytd'] - $totals['total_expenses']['actual_ytd'];
+        $totals['gross_operating_profit']['budget_ytd'] = $totals['total_revenue']['budget_ytd'] - $totals['total_expenses']['budget_ytd'];
+        $totals['gross_operating_profit']['variance_ytd'] = $totals['gross_operating_profit']['actual_ytd'] - $totals['gross_operating_profit']['budget_ytd'];
     }
 }

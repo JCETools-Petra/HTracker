@@ -136,19 +136,19 @@
                 <div class="p-6">
                     <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Comparative Analysis</h3>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <!-- Current Period -->
                         <div class="border-r dark:border-gray-700 pr-4">
                             <div class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
                                 Current ({{ $comparative['current']['period'] }})
                             </div>
                             <div class="space-y-2 text-sm">
                                 <div><strong>Revenue:</strong> Rp {{ number_format($comparative['current']['revenue'], 0) }}</div>
+                                <div class="pl-2 text-gray-600 dark:text-gray-400">↳ MICE: Rp {{ number_format($comparative['current']['mice'], 0) }}</div>
+                                
                                 <div><strong>Expense:</strong> Rp {{ number_format($comparative['current']['expense'], 0) }}</div>
                                 <div><strong>GOP:</strong> Rp {{ number_format($comparative['current']['gop'], 0) }}</div>
                             </div>
                         </div>
 
-                        <!-- Month-over-Month -->
                         <div class="border-r dark:border-gray-700 pr-4">
                             <div class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
                                 MoM (vs {{ $comparative['mom']['period'] }})
@@ -160,6 +160,13 @@
                                         {{ $comparative['mom']['revenue_change'] >= 0 ? '+' : '' }}{{ number_format($comparative['mom']['revenue_change'], 1) }}%
                                     </span>
                                 </div>
+                                <div class="pl-2">
+                                    <span class="text-gray-600 dark:text-gray-400">↳ MICE:</span>
+                                    <span class="{{ $comparative['mom']['mice_change'] >= 0 ? 'text-green-600' : 'text-red-600' }}">
+                                        {{ $comparative['mom']['mice_change'] >= 0 ? '+' : '' }}{{ number_format($comparative['mom']['mice_change'], 1) }}%
+                                    </span>
+                                </div>
+
                                 <div>
                                     <strong>Expense:</strong>
                                     <span class="{{ $comparative['mom']['expense_change'] <= 0 ? 'text-green-600' : 'text-red-600' }}">
@@ -175,7 +182,6 @@
                             </div>
                         </div>
 
-                        <!-- Year-over-Year -->
                         <div>
                             <div class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
                                 YoY (vs {{ $comparative['yoy']['period'] }})
@@ -187,6 +193,13 @@
                                         {{ $comparative['yoy']['revenue_change'] >= 0 ? '+' : '' }}{{ number_format($comparative['yoy']['revenue_change'], 1) }}%
                                     </span>
                                 </div>
+                                <div class="pl-2">
+                                    <span class="text-gray-600 dark:text-gray-400">↳ MICE:</span>
+                                    <span class="{{ $comparative['yoy']['mice_change'] >= 0 ? 'text-green-600' : 'text-red-600' }}">
+                                        {{ $comparative['yoy']['mice_change'] >= 0 ? '+' : '' }}{{ number_format($comparative['yoy']['mice_change'], 1) }}%
+                                    </span>
+                                </div>
+
                                 <div>
                                     <strong>Expense:</strong>
                                     <span class="{{ $comparative['yoy']['expense_change'] <= 0 ? 'text-green-600' : 'text-red-600' }}">
