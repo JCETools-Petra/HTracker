@@ -100,19 +100,44 @@ class FinancialCategorySeeder extends Seeder
         $housekeeping = $this->createCategory($propertyId, null, 'Housekeeping', null, 'expense', false, $sortOrder++);
 
         // Housekeeping - Payroll & Related Expenses
-        $hkPayroll = $this->createCategory($propertyId, $housekeeping->id, 'Payroll & Related Expenses', null, 'expense', true, 1);
-        $this->createCategory($propertyId, $hkPayroll->id, 'Salaries & Wages', null, 'expense', false, 1);
-        $this->createCategory($propertyId, $hkPayroll->id, 'Service Charge', null, 'expense', false, 2);
-        $this->createCategory($propertyId, $hkPayroll->id, 'Contract Labor (Outsourcing)', null, 'expense', false, 3);
+        $hkPayroll = $this->createCategory($propertyId, $housekeeping->id, 'PAYROLL & RELATED EXPENSES', null, 'expense', true, 1);
+        $this->createCategory($propertyId, $hkPayroll->id, 'SALARIES & WAGES', null, 'expense', false, 1);
+        $this->createCategory($propertyId, $hkPayroll->id, 'LEBARAN BONUS', null, 'expense', false, 2);
+        $this->createCategory($propertyId, $hkPayroll->id, 'EMPLOYEE TRANSPORTATION', null, 'expense', false, 3);
+        $this->createCategory($propertyId, $hkPayroll->id, 'MEDICAL EXPENSES', null, 'expense', false, 4);
+        $this->createCategory($propertyId, $hkPayroll->id, 'STAFF MEALS', null, 'expense', false, 5);
+        $this->createCategory($propertyId, $hkPayroll->id, 'JAMSOSTEK', null, 'expense', false, 6);
+        $this->createCategory($propertyId, $hkPayroll->id, 'TEMPORARY WORKERS', null, 'expense', false, 7);
+        $this->createCategory($propertyId, $hkPayroll->id, 'STAFF AWARD', null, 'expense', false, 8);
+
+        // Housekeeping - Total Staff Cost (calculated)
+        $this->createCategory($propertyId, $housekeeping->id, 'TOTAL STAFF COST', null, 'calculated', false, 2);
 
         // Housekeeping - Other Expenses
-        $hkOther = $this->createCategory($propertyId, $housekeeping->id, 'Other Expenses', null, 'expense', false, 2);
-        $this->createCategory($propertyId, $hkOther->id, 'Cleaning Supplies (Chemicals)', null, 'expense', false, 1);
-        $this->createCategory($propertyId, $hkOther->id, 'Guest Supplies (Amenities/Toiletries)', null, 'expense', false, 2);
-        $this->createCategory($propertyId, $hkOther->id, 'Laundry Supplies', null, 'expense', false, 3);
-        $this->createCategory($propertyId, $hkOther->id, 'Linen & Towels', null, 'expense', false, 4);
-        $this->createCategory($propertyId, $hkOther->id, 'Uniforms', null, 'expense', false, 5);
-        $this->createCategory($propertyId, $hkOther->id, 'Decorations / Flowers', null, 'expense', false, 6);
+        $hkOther = $this->createCategory($propertyId, $housekeeping->id, 'OTHER EXPENSES', null, 'expense', false, 3);
+        $this->createCategory($propertyId, $hkOther->id, 'Room Amenities', null, 'expense', false, 1);
+        $this->createCategory($propertyId, $hkOther->id, 'Guest Transportation', null, 'expense', false, 2);
+        $this->createCategory($propertyId, $hkOther->id, 'Laundry Chemical', null, 'expense', false, 3);
+        $this->createCategory($propertyId, $hkOther->id, 'Laundry Gas', null, 'expense', false, 4);
+        $this->createCategory($propertyId, $hkOther->id, 'Cleaning supplies', null, 'expense', false, 5);
+        $this->createCategory($propertyId, $hkOther->id, 'Equipment / Supplies', null, 'expense', false, 6);
+        $this->createCategory($propertyId, $hkOther->id, 'Printing & Stationery', null, 'expense', false, 7);
+        $this->createCategory($propertyId, $hkOther->id, 'Transportation', null, 'expense', false, 8);
+        $this->createCategory($propertyId, $hkOther->id, 'Television Maintance', null, 'expense', false, 9);
+        $this->createCategory($propertyId, $hkOther->id, 'Broadbands Internet', null, 'expense', false, 10);
+        $this->createCategory($propertyId, $hkOther->id, 'Removal waste', null, 'expense', false, 11);
+        $this->createCategory($propertyId, $hkOther->id, 'Postage &Courier', null, 'expense', false, 12);
+        $this->createCategory($propertyId, $hkOther->id, 'Contract Service', null, 'expense', false, 13);
+        $this->createCategory($propertyId, $hkOther->id, 'Air Conditioners Expenses', null, 'expense', false, 14);
+        $this->createCategory($propertyId, $hkOther->id, 'Plumbing & Heating', null, 'expense', false, 15);
+        $this->createCategory($propertyId, $hkOther->id, 'Maintenance-Building', null, 'expense', false, 16);
+        $this->createCategory($propertyId, $hkOther->id, 'Pest Control', null, 'expense', false, 17);
+        $this->createCategory($propertyId, $hkOther->id, 'Bathroom amenities', null, 'expense', false, 18);
+        $this->createCategory($propertyId, $hkOther->id, 'Electrical Bulp/Lamp', null, 'expense', false, 19);
+        $this->createCategory($propertyId, $hkOther->id, 'In Housek Laundry Supplies', null, 'expense', false, 20);
+        $this->createCategory($propertyId, $hkOther->id, 'Cleaning Laundry Supplies', null, 'expense', false, 21);
+        $this->createCategory($propertyId, $hkOther->id, 'CHINA GLASSWARE room', null, 'expense', false, 22);
+        $this->createCategory($propertyId, $hkOther->id, 'Cleaning Equipment', null, 'expense', false, 23);
 
         // -------------------- 3. F&B PRODUCT (Kitchen) --------------------
         $fnbProduct = $this->createCategory($propertyId, null, 'F&B Product (Kitchen)', null, 'expense', false, $sortOrder++);
@@ -206,21 +231,60 @@ class FinancialCategorySeeder extends Seeder
         $pomac = $this->createCategory($propertyId, null, 'POMAC (Property Operation, Maintenance & Energy)', null, 'expense', false, $sortOrder++);
 
         // POMAC - Payroll & Related Expenses
-        $pomacPayroll = $this->createCategory($propertyId, $pomac->id, 'Payroll & Related Expenses', null, 'expense', true, 1);
-        $this->createCategory($propertyId, $pomacPayroll->id, 'Engineering Salaries', null, 'expense', false, 1);
+        $pomacPayroll = $this->createCategory($propertyId, $pomac->id, 'PAYROLL & RELATED EXPENSES', null, 'expense', true, 1);
+        $this->createCategory($propertyId, $pomacPayroll->id, 'SALARIES & WAGES', null, 'expense', false, 1);
+        $this->createCategory($propertyId, $pomacPayroll->id, 'LEBARAN BONUS', null, 'expense', false, 2);
+        $this->createCategory($propertyId, $pomacPayroll->id, 'EMPLOYEE TRANSPORTATION', null, 'expense', false, 3);
+        $this->createCategory($propertyId, $pomacPayroll->id, 'MEDICAL EXPENSES', null, 'expense', false, 4);
+        $this->createCategory($propertyId, $pomacPayroll->id, 'STAFF MEALS', null, 'expense', false, 5);
+        $this->createCategory($propertyId, $pomacPayroll->id, 'JAMSOSTEK', null, 'expense', false, 6);
+        $this->createCategory($propertyId, $pomacPayroll->id, 'TEMPORARY WORKERS', null, 'expense', false, 7);
+        $this->createCategory($propertyId, $pomacPayroll->id, 'STAFF AWARD', null, 'expense', false, 8);
 
-        // POMAC - Energy Costs
-        $pomacEnergy = $this->createCategory($propertyId, $pomac->id, 'Energy Costs', null, 'expense', false, 2);
-        $this->createCategory($propertyId, $pomacEnergy->id, 'Electricity (PLN)', null, 'expense', false, 1);
-        $this->createCategory($propertyId, $pomacEnergy->id, 'Water (PDAM)', null, 'expense', false, 2);
-        $this->createCategory($propertyId, $pomacEnergy->id, 'Fuel / Diesel (Genset)', null, 'expense', false, 3);
+        // POMAC - Total Staff Cost (calculated)
+        $this->createCategory($propertyId, $pomac->id, 'TOTAL STAFF COST', null, 'calculated', false, 2);
 
-        // POMAC - Maintenance Expenses
-        $pomacMaintenance = $this->createCategory($propertyId, $pomac->id, 'Maintenance Expenses', null, 'expense', false, 3);
-        $this->createCategory($propertyId, $pomacMaintenance->id, 'Building Repairs', null, 'expense', false, 1);
-        $this->createCategory($propertyId, $pomacMaintenance->id, 'Electrical & Mechanical Equipment', null, 'expense', false, 2);
-        $this->createCategory($propertyId, $pomacMaintenance->id, 'Painting & Decoration', null, 'expense', false, 3);
-        $this->createCategory($propertyId, $pomacMaintenance->id, 'Waste Removal', null, 'expense', false, 4);
+        // POMAC - Other Expenses
+        $pomacOther = $this->createCategory($propertyId, $pomac->id, 'OTHER EXPENSES', null, 'expense', false, 3);
+        $this->createCategory($propertyId, $pomacOther->id, 'Printing & Stationery', null, 'expense', false, 1);
+        $this->createCategory($propertyId, $pomacOther->id, 'Telephone & Facsimile', null, 'expense', false, 2);
+        $this->createCategory($propertyId, $pomacOther->id, 'Kitchen Equipment', null, 'expense', false, 3);
+        $this->createCategory($propertyId, $pomacOther->id, 'Room Key System', null, 'expense', false, 4);
+        $this->createCategory($propertyId, $pomacOther->id, 'Electrical Supplies & Bulb', null, 'expense', false, 5);
+        $this->createCategory($propertyId, $pomacOther->id, 'Air Condition', null, 'expense', false, 6);
+        $this->createCategory($propertyId, $pomacOther->id, 'Plumbing & Piping system', null, 'expense', false, 7);
+        $this->createCategory($propertyId, $pomacOther->id, 'Mechanical & Electrical', null, 'expense', false, 8);
+        $this->createCategory($propertyId, $pomacOther->id, 'Engineering Equipment & Supplies', null, 'expense', false, 9);
+        $this->createCategory($propertyId, $pomacOther->id, 'Swimming Pool Chemicals & Supplie', null, 'expense', false, 10);
+        $this->createCategory($propertyId, $pomacOther->id, 'Equipment Repair & Maintenance', null, 'expense', false, 11);
+        $this->createCategory($propertyId, $pomacOther->id, 'Parts & Supplies', null, 'expense', false, 12);
+        $this->createCategory($propertyId, $pomacOther->id, 'Vehicles/Car', null, 'expense', false, 13);
+        $this->createCategory($propertyId, $pomacOther->id, 'Painting', null, 'expense', false, 14);
+        $this->createCategory($propertyId, $pomacOther->id, 'Drapes & Carpets', null, 'expense', false, 15);
+        $this->createCategory($propertyId, $pomacOther->id, 'Furniture & Fixtures', null, 'expense', false, 16);
+        $this->createCategory($propertyId, $pomacOther->id, 'Building Repair', null, 'expense', false, 17);
+        $this->createCategory($propertyId, $pomacOther->id, 'Floor & Wall Covering', null, 'expense', false, 18);
+        $this->createCategory($propertyId, $pomacOther->id, 'Sewage & Treatment', null, 'expense', false, 19);
+        $this->createCategory($propertyId, $pomacOther->id, 'Ground & Landscaping', null, 'expense', false, 20);
+        $this->createCategory($propertyId, $pomacOther->id, 'Removal Of Waste', null, 'expense', false, 21);
+        $this->createCategory($propertyId, $pomacOther->id, 'Signage', null, 'expense', false, 22);
+        $this->createCategory($propertyId, $pomacOther->id, 'Transportation', null, 'expense', false, 23);
+        $this->createCategory($propertyId, $pomacOther->id, 'Television & Audio Visual', null, 'expense', false, 24);
+        $this->createCategory($propertyId, $pomacOther->id, 'Laundry Equipment', null, 'expense', false, 25);
+        $this->createCategory($propertyId, $pomacOther->id, 'Laundry Uniforms', null, 'expense', false, 26);
+        $this->createCategory($propertyId, $pomacOther->id, 'Contract Services', null, 'expense', false, 27);
+        $this->createCategory($propertyId, $pomacOther->id, 'Lampu', null, 'expense', false, 28);
+        $this->createCategory($propertyId, $pomacOther->id, 'Decoration Lamp', null, 'expense', false, 29);
+        $this->createCategory($propertyId, $pomacOther->id, 'APAR', null, 'expense', false, 30);
+
+        // POMAC - Total Oper & Maint. (calculated)
+        $this->createCategory($propertyId, $pomac->id, 'TOTAL OPER & MAINT.', null, 'calculated', false, 4);
+
+        // POMAC - Energy Cost
+        $pomacEnergy = $this->createCategory($propertyId, $pomac->id, 'ENERGY COST', null, 'expense', false, 5);
+        $this->createCategory($propertyId, $pomacEnergy->id, 'ELECTRICITY', null, 'expense', false, 1);
+        $this->createCategory($propertyId, $pomacEnergy->id, 'FUEL & OIL', null, 'expense', false, 2);
+        $this->createCategory($propertyId, $pomacEnergy->id, 'WATER', null, 'expense', false, 3);
 
         // -------------------- 6. ACCOUNTING & GENERAL (A&G) --------------------
         $accountingGeneral = $this->createCategory($propertyId, null, 'Accounting & General (A&G)', null, 'expense', false, $sortOrder++);
