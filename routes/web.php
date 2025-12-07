@@ -107,6 +107,8 @@ Route::prefix('admin')->middleware(['auth', 'verified', 'role:admin,owner'])->na
     Route::post('/financial/{property}/copy-previous-month', [\App\Http\Controllers\Admin\FinancialController::class, 'copyFromPreviousMonth'])->name('financial.copy-previous-month');
     Route::get('/financial/{property}/input-budget', [\App\Http\Controllers\Admin\FinancialController::class, 'showInputBudget'])->name('financial.input-budget');
     Route::post('/financial/{property}/input-budget', [\App\Http\Controllers\Admin\FinancialController::class, 'storeInputBudget'])->name('financial.input-budget.store');
+    Route::get('/financial/{property}/budget-template/download', [\App\Http\Controllers\Admin\FinancialController::class, 'downloadBudgetTemplate'])->name('financial.budget-template.download');
+    Route::post('/financial/{property}/budget-template/import', [\App\Http\Controllers\Admin\FinancialController::class, 'importBudgetTemplate'])->name('financial.budget-template.import');
     Route::get('/financial/{property}/report', [\App\Http\Controllers\Admin\FinancialController::class, 'showReport'])->name('financial.report');
     Route::get('/financial/{property}/export-excel', [\App\Http\Controllers\Admin\FinancialController::class, 'exportExcel'])->name('financial.export-excel');
     Route::get('/financial/{property}/export-pdf', [\App\Http\Controllers\Admin\FinancialController::class, 'exportPdf'])->name('financial.export-pdf');
