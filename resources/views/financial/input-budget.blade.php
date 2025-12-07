@@ -48,6 +48,48 @@
                         </p>
                     </div>
 
+                    <!-- Template Download/Upload Section -->
+                    <div class="mb-6 p-4 bg-green-50 dark:bg-green-900 border border-green-200 dark:border-green-700 rounded-lg">
+                        <h3 class="text-lg font-semibold text-green-800 dark:text-green-200 mb-3">Template Excel Budget</h3>
+                        <p class="text-sm text-green-700 dark:text-green-300 mb-4">
+                            Download template Excel untuk mengisi budget semua kategori (Januari - Desember), lalu upload kembali untuk import otomatis.
+                        </p>
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <!-- Download Template Button -->
+                            <a href="{{ route('property.financial.budget-template.download', ['year' => $year]) }}"
+                               class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                Download Template Excel
+                            </a>
+
+                            <!-- Upload Template Button -->
+                            <form method="POST" action="{{ route('property.financial.budget-template.import') }}" enctype="multipart/form-data" class="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+                                @csrf
+                                <input type="hidden" name="year" value="{{ $year }}">
+                                <input type="file" name="file" accept=".xlsx,.xls" required
+                                       class="block w-full text-sm text-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-gray-50 dark:bg-gray-700 focus:outline-none">
+                                <button type="submit"
+                                        class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition whitespace-nowrap">
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                    </svg>
+                                    Upload & Import
+                                </button>
+                            </form>
+                        </div>
+                        @if ($errors->any())
+                            <div class="mt-3 p-3 bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-700 rounded-md">
+                                <ul class="list-disc list-inside text-sm text-red-700 dark:text-red-300">
+                                    @foreach ($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+                    </div>
+
                     <!-- Input Form -->
                     <form method="POST" action="{{ route('property.financial.input-budget.store') }}" x-data="{ activeTab: 0 }">
                         @csrf

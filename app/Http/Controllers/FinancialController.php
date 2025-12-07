@@ -349,4 +349,63 @@ class FinancialController extends Controller
         return redirect()->route('property.financial.input-budget', ['year' => $validated['year']])
             ->with('success', 'Budget tahunan berhasil disimpan dan didistribusikan ke 12 bulan.');
     }
+
+    /**
+     * Download budget template for annual budget input.
+     */
+    public function downloadBudgetTemplate(Request $request)
+    {
+        $user = Auth::user();
+        $property = $user->property;
+
+        if (!$property) {
+            abort(403, 'Akun Anda tidak terikat pada properti manapun.');
+        }
+
+        $year = $request->input('year', Carbon::now()->addYear()->year);
+        $fileName = 'Budget_Template_' . $property->name . '_' . $year . '.xlsx';
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\BudgetTemplateExport($property->id, $year),
+            $fileName
+        );
+    }
+
+    /**
+     * Import budget from uploaded template.
+     */
+    public function importBudgetTemplate(Request $request)
+    {
+        $user = Auth::user();
+        $property = $user->property;
+
+        if (!$property) {
+            abort(403, 'Akun Anda tidak terikat pada properti manapun.');
+        }
+
+        $validated = $request->validate([
+            'year' => 'required|integer|min:2020|max:2100',
+            'file' => 'required|file|mimes:xlsx,xls|max:10240', // Max 10MB
+        ]);
+
+        try {
+            $import = new \App\Imports\BudgetTemplateImport($property->id, $validated['year']);
+
+            \Maatwebsite\Excel\Facades\Excel::import($import, $request->file('file'));
+
+            $importedCount = $import->getImportedCount();
+            $errors = $import->getErrors();
+
+            if (count($errors) > 0) {
+                return redirect()->route('property.financial.input-budget', ['year' => $validated['year']])
+                    ->with('warning', "Import selesai dengan {$importedCount} data berhasil, tetapi ada beberapa error: " . implode(', ', $errors));
+            }
+
+            return redirect()->route('property.financial.input-budget', ['year' => $validated['year']])
+                ->with('success', "Berhasil mengimport {$importedCount} data budget.");
+        } catch (\Exception $e) {
+            return redirect()->route('property.financial.input-budget', ['year' => $validated['year']])
+                ->with('error', 'Gagal mengimport file: ' . $e->getMessage());
+        }
+    }
 }

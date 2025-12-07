@@ -194,6 +194,8 @@ Route::prefix('property')->middleware(['auth', 'verified', 'role:pengguna_proper
     Route::post('/financial/copy-previous-month', [\App\Http\Controllers\FinancialController::class, 'copyFromPreviousMonth'])->name('financial.copy-previous-month');
     Route::get('/financial/input-budget', [\App\Http\Controllers\FinancialController::class, 'showInputBudget'])->name('financial.input-budget');
     Route::post('/financial/input-budget', [\App\Http\Controllers\FinancialController::class, 'storeInputBudget'])->name('financial.input-budget.store');
+    Route::get('/financial/budget-template/download', [\App\Http\Controllers\FinancialController::class, 'downloadBudgetTemplate'])->name('financial.budget-template.download');
+    Route::post('/financial/budget-template/import', [\App\Http\Controllers\FinancialController::class, 'importBudgetTemplate'])->name('financial.budget-template.import');
     Route::get('/financial/report', [\App\Http\Controllers\FinancialController::class, 'showReport'])->name('financial.report');
     Route::get('/financial/export-excel', [\App\Http\Controllers\FinancialController::class, 'exportExcel'])->name('financial.export-excel');
     Route::get('/financial/export-pdf', [\App\Http\Controllers\FinancialController::class, 'exportPdf'])->name('financial.export-pdf');
