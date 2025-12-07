@@ -56,7 +56,7 @@
                                     <strong>Periode:</strong> {{ \Carbon\Carbon::create(2000, $month, 1)->format('F') }} {{ $year }}
                                 </p>
                                 <p class="text-xs text-blue-600 dark:text-blue-300 mt-1">
-                                    Input data realisasi (Actual) dan anggaran (Budget) untuk bulan ini. Data pendapatan (Revenue) akan diambil otomatis dari pencatatan harian.
+                                    Input data realisasi (Actual) untuk bulan ini. Data pendapatan (Revenue) akan diambil otomatis dari pencatatan harian.
                                 </p>
                             </div>
                             <!-- Copy from Previous Month Button -->
@@ -104,14 +104,11 @@
                                     <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                         <thead class="bg-gray-50 dark:bg-gray-700">
                                             <tr>
-                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-1/2">
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-2/3">
                                                     Kategori
                                                 </th>
-                                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider w-1/3">
                                                     Actual (Rp)
-                                                </th>
-                                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                                                    Budget (Rp)
                                                 </th>
                                             </tr>
                                         </thead>
@@ -132,16 +129,6 @@
                                                             class="w-full text-right border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
                                                         >
                                                         <input type="hidden" name="entries[{{ $loop->parent->index }}_{{ $loop->index }}][category_id]" value="{{ $cat['id'] }}">
-                                                    </td>
-                                                    <td class="px-6 py-4 whitespace-nowrap">
-                                                        <input
-                                                            type="number"
-                                                            name="entries[{{ $loop->parent->index }}_{{ $loop->index }}][budget_value]"
-                                                            step="0.01"
-                                                            min="0"
-                                                            value="{{ $existingEntries[$cat['id']]->budget_value ?? 0 }}"
-                                                            class="w-full text-right border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200"
-                                                        >
                                                     </td>
                                                 </tr>
                                             @endforeach

@@ -189,15 +189,11 @@ Route::prefix('property')->middleware(['auth', 'verified', 'role:pengguna_proper
     Route::delete('/income/{income}', [PropertyIncomeController::class, 'destroy'])->name('income.destroy');
     Route::post('/occupancy/update', [PropertyIncomeController::class, 'updateOccupancy'])->name('occupancy.update');
 
-    // Financial Budgeting & P&L Routes
+    // Financial P&L Routes (Property users can only input actual data, NOT budget)
     Route::get('/financial/dashboard', [\App\Http\Controllers\FinancialController::class, 'showDashboard'])->name('financial.dashboard');
     Route::get('/financial/input-actual', [\App\Http\Controllers\FinancialController::class, 'showInputActual'])->name('financial.input-actual');
     Route::post('/financial/input-actual', [\App\Http\Controllers\FinancialController::class, 'storeInputActual'])->name('financial.input-actual.store');
     Route::post('/financial/copy-previous-month', [\App\Http\Controllers\FinancialController::class, 'copyFromPreviousMonth'])->name('financial.copy-previous-month');
-    Route::get('/financial/input-budget', [\App\Http\Controllers\FinancialController::class, 'showInputBudget'])->name('financial.input-budget');
-    Route::post('/financial/input-budget', [\App\Http\Controllers\FinancialController::class, 'storeInputBudget'])->name('financial.input-budget.store');
-    Route::get('/financial/budget-template/download', [\App\Http\Controllers\FinancialController::class, 'downloadBudgetTemplate'])->name('financial.budget-template.download');
-    Route::post('/financial/budget-template/import', [\App\Http\Controllers\FinancialController::class, 'importBudgetTemplate'])->name('financial.budget-template.import');
     Route::get('/financial/report', [\App\Http\Controllers\FinancialController::class, 'showReport'])->name('financial.report');
     Route::get('/financial/export-excel', [\App\Http\Controllers\FinancialController::class, 'exportExcel'])->name('financial.export-excel');
     Route::get('/financial/export-pdf', [\App\Http\Controllers\FinancialController::class, 'exportPdf'])->name('financial.export-pdf');

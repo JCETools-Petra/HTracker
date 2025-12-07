@@ -53,6 +53,7 @@ class FinancialController extends Controller
 
     /**
      * Store the actual monthly expenses.
+     * Property users can ONLY input actual values, NOT budget values.
      */
     public function storeInputActual(Request $request)
     {
@@ -69,18 +70,27 @@ class FinancialController extends Controller
             'entries' => 'required|array',
             'entries.*.category_id' => 'required|exists:financial_categories,id',
             'entries.*.actual_value' => 'required|numeric|min:0',
-            'entries.*.budget_value' => 'nullable|numeric|min:0',
         ]);
 
         // Save or update each entry
         foreach ($validated['entries'] as $entry) {
+            // Get existing entry to preserve budget value (if any)
+            $existingEntry = \App\Models\FinancialEntry::where('property_id', $property->id)
+                ->where('financial_category_id', $entry['category_id'])
+                ->where('year', $validated['year'])
+                ->where('month', $validated['month'])
+                ->first();
+
+            // Property users can only update actual_value, preserve existing budget_value
+            $budgetValue = $existingEntry ? $existingEntry->budget_value : 0;
+
             $this->financialService->saveEntry(
                 $property->id,
                 $entry['category_id'],
                 $validated['year'],
                 $validated['month'],
                 $entry['actual_value'],
-                $entry['budget_value'] ?? 0
+                $budgetValue
             );
         }
 
@@ -230,6 +240,7 @@ class FinancialController extends Controller
 
     /**
      * Copy data from previous month (bulk input feature).
+     * Only copies actual values, preserves budget values.
      */
     public function copyFromPreviousMonth(Request $request)
     {
@@ -258,13 +269,23 @@ class FinancialController extends Controller
         // Copy to current month
         $copiedCount = 0;
         foreach ($prevEntries as $entry) {
+            // Get existing entry for current month to preserve budget
+            $existingEntry = \App\Models\FinancialEntry::where('property_id', $property->id)
+                ->where('financial_category_id', $entry->financial_category_id)
+                ->where('year', $validated['year'])
+                ->where('month', $validated['month'])
+                ->first();
+
+            // Preserve existing budget value
+            $budgetValue = $existingEntry ? $existingEntry->budget_value : $entry->budget_value;
+
             $this->financialService->saveEntry(
                 $property->id,
                 $entry->financial_category_id,
                 $validated['year'],
                 $validated['month'],
-                $entry->actual_value,
-                $entry->budget_value
+                $entry->actual_value, // Copy actual value from previous month
+                $budgetValue // Preserve budget value
             );
             $copiedCount++;
         }
@@ -272,140 +293,6 @@ class FinancialController extends Controller
         return redirect()->route('property.financial.input-actual', [
             'year' => $validated['year'],
             'month' => $validated['month']
-        ])->with('success', "Berhasil menyalin $copiedCount data dari bulan sebelumnya.");
-    }
-
-    /**
-     * Show budget input form for annual budget.
-     */
-    public function showInputBudget(Request $request)
-    {
-        $user = Auth::user();
-        $property = $user->property;
-
-        if (!$property) {
-            abort(403, 'Akun Anda tidak terikat pada properti manapun.');
-        }
-
-        // Get year from request or use next year
-        $year = $request->input('year', Carbon::now()->addYear()->year);
-
-        // Get categories grouped by department
-        $departments = $this->financialService->getCategoriesForInput($property->id);
-
-        // Get existing budget entries for this year (using month 1 as annual budget)
-        $existingEntries = \App\Models\FinancialEntry::where('property_id', $property->id)
-            ->where('year', $year)
-            ->get()
-            ->groupBy('financial_category_id')
-            ->map(function ($entries) {
-                // Sum all budget values for the year
-                return $entries->sum('budget_value');
-            });
-
-        return view('financial.input-budget', compact(
-            'property',
-            'year',
-            'departments',
-            'existingEntries'
-        ));
-    }
-
-    /**
-     * Store the annual budget.
-     */
-    public function storeInputBudget(Request $request)
-    {
-        $user = Auth::user();
-        $property = $user->property;
-
-        if (!$property) {
-            abort(403, 'Akun Anda tidak terikat pada properti manapun.');
-        }
-
-        $validated = $request->validate([
-            'year' => 'required|integer|min:2020|max:2100',
-            'entries' => 'required|array',
-            'entries.*.category_id' => 'required|exists:financial_categories,id',
-            'entries.*.budget_value' => 'required|numeric|min:0',
-        ]);
-
-        // Distribute annual budget across all 12 months
-        foreach ($validated['entries'] as $entry) {
-            $monthlyBudget = $entry['budget_value'] / 12; // Distribute equally
-
-            for ($month = 1; $month <= 12; $month++) {
-                $this->financialService->saveEntry(
-                    $property->id,
-                    $entry['category_id'],
-                    $validated['year'],
-                    $month,
-                    0, // actual value (will be filled later)
-                    $monthlyBudget
-                );
-            }
-        }
-
-        return redirect()->route('property.financial.input-budget', ['year' => $validated['year']])
-            ->with('success', 'Budget tahunan berhasil disimpan dan didistribusikan ke 12 bulan.');
-    }
-
-    /**
-     * Download budget template for annual budget input.
-     */
-    public function downloadBudgetTemplate(Request $request)
-    {
-        $user = Auth::user();
-        $property = $user->property;
-
-        if (!$property) {
-            abort(403, 'Akun Anda tidak terikat pada properti manapun.');
-        }
-
-        $year = $request->input('year', Carbon::now()->addYear()->year);
-        $fileName = 'Budget_Template_' . $property->name . '_' . $year . '.xlsx';
-
-        return \Maatwebsite\Excel\Facades\Excel::download(
-            new \App\Exports\BudgetTemplateExport($property->id, $year),
-            $fileName
-        );
-    }
-
-    /**
-     * Import budget from uploaded template.
-     */
-    public function importBudgetTemplate(Request $request)
-    {
-        $user = Auth::user();
-        $property = $user->property;
-
-        if (!$property) {
-            abort(403, 'Akun Anda tidak terikat pada properti manapun.');
-        }
-
-        $validated = $request->validate([
-            'year' => 'required|integer|min:2020|max:2100',
-            'file' => 'required|file|mimes:xlsx,xls|max:10240', // Max 10MB
-        ]);
-
-        try {
-            $import = new \App\Imports\BudgetTemplateImport($property->id, $validated['year']);
-
-            \Maatwebsite\Excel\Facades\Excel::import($import, $request->file('file'));
-
-            $importedCount = $import->getImportedCount();
-            $errors = $import->getErrors();
-
-            if (count($errors) > 0) {
-                return redirect()->route('property.financial.input-budget', ['year' => $validated['year']])
-                    ->with('warning', "Import selesai dengan {$importedCount} data berhasil, tetapi ada beberapa error: " . implode(', ', $errors));
-            }
-
-            return redirect()->route('property.financial.input-budget', ['year' => $validated['year']])
-                ->with('success', "Berhasil mengimport {$importedCount} data budget.");
-        } catch (\Exception $e) {
-            return redirect()->route('property.financial.input-budget', ['year' => $validated['year']])
-                ->with('error', 'Gagal mengimport file: ' . $e->getMessage());
-        }
+        ])->with('success', "Berhasil menyalin $copiedCount data actual dari bulan sebelumnya.");
     }
 }
