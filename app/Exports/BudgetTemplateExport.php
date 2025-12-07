@@ -4,8 +4,7 @@ namespace App\Exports;
 
 use App\Models\FinancialCategory;
 use App\Models\Property;
-use Maatwebsite\Excel\Concerns\FromCollection;
-use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithEvents;
@@ -13,12 +12,10 @@ use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
-use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
-use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
-class BudgetTemplateExport implements FromCollection, WithHeadings, WithStyles, WithColumnWidths, WithEvents, WithTitle
+class BudgetTemplateExport implements FromArray, WithStyles, WithColumnWidths, WithEvents, WithTitle
 {
     protected $propertyId;
     protected $year;
@@ -40,47 +37,44 @@ class BudgetTemplateExport implements FromCollection, WithHeadings, WithStyles, 
         $this->property = Property::find($propertyId);
     }
 
-    public function collection()
+    public function array(): array
     {
+        $propertyName = $this->property ? strtoupper($this->property->name) : 'PROPERTY';
+
+        // Title and header rows
+        $data = [
+            ['BUDGET TEMPLATE - ' . $propertyName, '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
+            ['Tahun: ' . $this->year, '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
+            [], // Empty row
+            ['Category ID', 'Department', 'Category Name', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+        ];
+
         // Get all departments (top-level categories)
         $departments = FinancialCategory::forProperty($this->propertyId)
             ->whereNull('parent_id')
             ->orderBy('sort_order')
             ->get();
 
-        $rows = [];
-
         foreach ($departments as $department) {
             // Add department header row
-            $rows[] = [
-                'category_id' => '',
-                'department' => strtoupper($department->name),
-                'category_name' => '',
-                'level' => 0,
-                'is_header' => true,
-                'jan' => '', 'feb' => '', 'mar' => '', 'apr' => '', 'may' => '', 'jun' => '',
-                'jul' => '', 'aug' => '', 'sep' => '', 'oct' => '', 'nov' => '', 'dec' => '',
+            $data[] = [
+                '', // Category ID
+                strtoupper($department->name), // Department
+                '', // Category Name
+                '', '', '', '', '', '', '', '', '', '', '', '' // Empty months
             ];
 
             // Get all expense categories under this department
-            $this->addCategoriesRecursive($rows, $department, 1);
+            $this->addCategoriesRecursive($data, $department, 1);
 
             // Add empty row between departments
-            $rows[] = [
-                'category_id' => '',
-                'department' => '',
-                'category_name' => '',
-                'level' => 0,
-                'is_header' => false,
-                'jan' => '', 'feb' => '', 'mar' => '', 'apr' => '', 'may' => '', 'jun' => '',
-                'jul' => '', 'aug' => '', 'sep' => '', 'oct' => '', 'nov' => '', 'dec' => '',
-            ];
+            $data[] = ['', '', '', '', '', '', '', '', '', '', '', '', '', '', ''];
         }
 
-        return collect($rows);
+        return $data;
     }
 
-    private function addCategoriesRecursive(&$rows, $parent, $level)
+    private function addCategoriesRecursive(&$data, $parent, $level)
     {
         $children = FinancialCategory::forProperty($this->propertyId)
             ->where('parent_id', $parent->id)
@@ -88,68 +82,35 @@ class BudgetTemplateExport implements FromCollection, WithHeadings, WithStyles, 
             ->get();
 
         foreach ($children as $category) {
-            // Only add expense type leaf nodes (input-eligible categories)
-            if ($category->type === 'expense' && !$category->children()->exists()) {
-                $indent = str_repeat('  ', $level); // 2 spaces per level
+            // Check if this category has children
+            $hasChildren = $category->children()->exists();
 
-                $rows[] = [
-                    'category_id' => $category->id,
-                    'department' => $this->getDepartmentName($category),
-                    'category_name' => $indent . $category->name,
-                    'level' => $level,
-                    'is_header' => false,
-                    'jan' => 0, 'feb' => 0, 'mar' => 0, 'apr' => 0, 'may' => 0, 'jun' => 0,
-                    'jul' => 0, 'aug' => 0, 'sep' => 0, 'oct' => 0, 'nov' => 0, 'dec' => 0,
+            if ($hasChildren) {
+                // Add section header
+                $indent = str_repeat('  ', $level);
+                $data[] = [
+                    '', // No Category ID for section headers
+                    '', // Department
+                    $indent . '▶ ' . strtoupper($category->name), // Category Name with marker
+                    '', '', '', '', '', '', '', '', '', '', '', '' // Empty months
                 ];
-            } else {
-                // For parent categories, add as section header
-                if ($category->children()->exists()) {
-                    $indent = str_repeat('  ', $level);
-                    $rows[] = [
-                        'category_id' => '',
-                        'department' => '',
-                        'category_name' => $indent . '▶ ' . strtoupper($category->name),
-                        'level' => $level,
-                        'is_header' => true,
-                        'jan' => '', 'feb' => '', 'mar' => '', 'apr' => '', 'may' => '', 'jun' => '',
-                        'jul' => '', 'aug' => '', 'sep' => '', 'oct' => '', 'nov' => '', 'dec' => '',
-                    ];
-                }
 
                 // Recurse to children
-                $this->addCategoriesRecursive($rows, $category, $level + 1);
+                $this->addCategoriesRecursive($data, $category, $level + 1);
+            } else {
+                // Only add expense type leaf nodes (input-eligible categories)
+                if ($category->type === 'expense') {
+                    $indent = str_repeat('  ', $level);
+
+                    $data[] = [
+                        $category->id, // Category ID
+                        $this->getDepartmentName($category), // Department
+                        $indent . $category->name, // Category Name with indentation
+                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 // 12 months with default 0
+                    ];
+                }
             }
         }
-    }
-
-    public function headings(): array
-    {
-        return [
-            [
-                'BUDGET TEMPLATE - ' . ($this->property ? strtoupper($this->property->name) : 'PROPERTY'),
-            ],
-            [
-                'Tahun: ' . $this->year,
-            ],
-            [], // Empty row
-            [
-                'Category ID',
-                'Department',
-                'Category Name',
-                'January',
-                'February',
-                'March',
-                'April',
-                'May',
-                'June',
-                'July',
-                'August',
-                'September',
-                'October',
-                'November',
-                'December',
-            ],
-        ];
     }
 
     public function styles(Worksheet $sheet)
@@ -250,12 +211,12 @@ class BudgetTemplateExport implements FromCollection, WithHeadings, WithStyles, 
 
                 // Start from row 5 (after headers)
                 for ($row = 5; $row <= $highestRow; $row++) {
+                    $categoryId = $sheet->getCell("A{$row}")->getValue();
                     $departmentCell = $sheet->getCell("B{$row}")->getValue();
                     $categoryCell = $sheet->getCell("C{$row}")->getValue();
-                    $categoryId = $sheet->getCell("A{$row}")->getValue();
 
-                    // Check if this is a department header row
-                    if (!empty($departmentCell) && $departmentCell === strtoupper($departmentCell) && empty($categoryId)) {
+                    // Check if this is a department header row (has department name but no category ID)
+                    if (!empty($departmentCell) && empty($categoryId) && empty($categoryCell)) {
                         $currentDepartment = $departmentCell;
                         $departmentColor = $this->getDepartmentColor($departmentCell);
 
@@ -304,7 +265,7 @@ class BudgetTemplateExport implements FromCollection, WithHeadings, WithStyles, 
                             ],
                         ]);
                     }
-                    // Regular category rows
+                    // Regular category rows (has category ID)
                     elseif (!empty($categoryId)) {
                         // Apply light background
                         $sheet->getStyle("A{$row}:O{$row}")->applyFromArray([
@@ -320,11 +281,11 @@ class BudgetTemplateExport implements FromCollection, WithHeadings, WithStyles, 
                             ],
                         ]);
 
-                        // Number format for month columns
+                        // Number format for month columns (D to O)
                         $sheet->getStyle("D{$row}:O{$row}")->getNumberFormat()
                             ->setFormatCode('#,##0');
 
-                        // Center align month values
+                        // Right align month values
                         $sheet->getStyle("D{$row}:O{$row}")->getAlignment()
                             ->setHorizontal(Alignment::HORIZONTAL_RIGHT);
                     }
