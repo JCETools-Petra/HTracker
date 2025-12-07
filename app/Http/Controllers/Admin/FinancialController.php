@@ -335,6 +335,14 @@ class FinancialController extends Controller
             $importedCount = $import->getImportedCount();
             $errors = $import->getErrors();
 
+            // Check if no data was imported
+            if ($importedCount == 0 && count($errors) == 0) {
+                return redirect()->route('admin.financial.input-budget', [
+                    'property' => $property->id,
+                    'year' => $validated['year']
+                ])->with('error', 'Tidak ada data yang berhasil diimport. Pastikan file Excel berisi data dengan Category ID yang valid. Cek log di storage/logs/laravel.log untuk detail.');
+            }
+
             if (count($errors) > 0) {
                 // Format errors as HTML list for better readability
                 $errorList = '<ul class="list-disc ml-5">';
@@ -343,16 +351,22 @@ class FinancialController extends Controller
                 }
                 $errorList .= '</ul>';
 
+                $months = $importedCount / 12; // Each category = 12 months
+                $message = $importedCount > 0
+                    ? "Import selesai: {$months} kategori ({$importedCount} bulan) berhasil diimport."
+                    : "Import gagal - tidak ada data yang berhasil diimport.";
+
                 return redirect()->route('admin.financial.input-budget', [
                     'property' => $property->id,
                     'year' => $validated['year']
-                ])->with('warning', "Import selesai dengan {$importedCount} data berhasil. Error yang terjadi: " . $errorList);
+                ])->with('warning', $message . " Error yang terjadi: " . $errorList);
             }
 
+            $months = $importedCount / 12; // Each category = 12 months
             return redirect()->route('admin.financial.input-budget', [
                 'property' => $property->id,
                 'year' => $validated['year']
-            ])->with('success', "Berhasil mengimport {$importedCount} data budget untuk " . $property->name);
+            ])->with('success', "Berhasil mengimport budget untuk {$months} kategori ({$importedCount} bulan) di " . $property->name);
         } catch (\Exception $e) {
             return redirect()->route('admin.financial.input-budget', [
                 'property' => $property->id,
