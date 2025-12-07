@@ -415,212 +415,238 @@
         // Chart.js data from backend
         const chartData = @json($chartData);
 
+        // Validate chartData structure
+        if (!chartData) {
+            console.error('Chart data is missing');
+        }
+
+        // Ensure arrays exist
+        if (!chartData.monthly_trend) chartData.monthly_trend = [];
+        if (!chartData.revenue_breakdown) chartData.revenue_breakdown = [];
+        if (!chartData.expense_breakdown) chartData.expense_breakdown = [];
+
         // Trend Chart (Revenue & Expense over 12 months)
-        const trendCtx = document.getElementById('trendChart').getContext('2d');
-        new Chart(trendCtx, {
-            type: 'line',
-            data: {
-                labels: chartData.monthly_trend.map(d => d.month),
-                datasets: [
-                    {
-                        label: 'Revenue (Actual)',
-                        data: chartData.monthly_trend.map(d => d.revenue_actual),
-                        borderColor: 'rgb(34, 197, 94)',
-                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                        tension: 0.3
-                    },
-                    {
-                        label: 'Revenue (Budget)',
-                        data: chartData.monthly_trend.map(d => d.revenue_budget),
-                        borderColor: 'rgb(134, 239, 172)',
-                        backgroundColor: 'transparent',
-                        borderDash: [5, 5],
-                        tension: 0.3
-                    },
-                    {
-                        label: 'Expense (Actual)',
-                        data: chartData.monthly_trend.map(d => d.expense_actual),
-                        borderColor: 'rgb(239, 68, 68)',
-                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                        tension: 0.3
-                    },
-                    {
-                        label: 'Expense (Budget)',
-                        data: chartData.monthly_trend.map(d => d.expense_budget),
-                        borderColor: 'rgb(252, 165, 165)',
-                        backgroundColor: 'transparent',
-                        borderDash: [5, 5],
-                        tension: 0.3
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.dataset.label + ': Rp ' + context.parsed.y.toLocaleString('id-ID');
+        if (chartData.monthly_trend && chartData.monthly_trend.length > 0) {
+            const trendCtx = document.getElementById('trendChart').getContext('2d');
+            new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: chartData.monthly_trend.map(d => d.month),
+                    datasets: [
+                        {
+                            label: 'Revenue (Actual)',
+                            data: chartData.monthly_trend.map(d => d.revenue_actual),
+                            borderColor: 'rgb(34, 197, 94)',
+                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Revenue (Budget)',
+                            data: chartData.monthly_trend.map(d => d.revenue_budget),
+                            borderColor: 'rgb(134, 239, 172)',
+                            backgroundColor: 'transparent',
+                            borderDash: [5, 5],
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Expense (Actual)',
+                            data: chartData.monthly_trend.map(d => d.expense_actual),
+                            borderColor: 'rgb(239, 68, 68)',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Expense (Budget)',
+                            data: chartData.monthly_trend.map(d => d.expense_budget),
+                            borderColor: 'rgb(252, 165, 165)',
+                            backgroundColor: 'transparent',
+                            borderDash: [5, 5],
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': Rp ' + context.parsed.y.toLocaleString('id-ID');
+                                }
                             }
                         }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            callback: function(value) {
-                                return 'Rp ' + (value / 1000000).toFixed(0) + 'M';
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'Rp ' + (value / 1000000).toFixed(0) + 'M';
+                                }
                             }
                         }
                     }
                 }
-            }
-        });
+            });
+        } else {
+            document.getElementById('trendChart').parentElement.innerHTML = '<p class="text-center text-gray-500 py-8">No trend data available for this period</p>';
+        }
 
         // Revenue Breakdown Pie Chart
-        const revenueCtx = document.getElementById('revenueChart').getContext('2d');
-        new Chart(revenueCtx, {
-            type: 'pie',
-            data: {
-                labels: chartData.revenue_breakdown.map(d => d.name),
-                datasets: [{
-                    data: chartData.revenue_breakdown.map(d => d.value),
-                    backgroundColor: [
-                        'rgb(34, 197, 94)',
-                        'rgb(59, 130, 246)',
-                        'rgb(168, 85, 247)',
-                        'rgb(251, 146, 60)',
-                        'rgb(236, 72, 153)'
-                    ]
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                const percentage = ((context.parsed / total) * 100).toFixed(1);
-                                return context.label + ': Rp ' + context.parsed.toLocaleString('id-ID') + ' (' + percentage + '%)';
+        if (chartData.revenue_breakdown && chartData.revenue_breakdown.length > 0) {
+            const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+            new Chart(revenueCtx, {
+                type: 'pie',
+                data: {
+                    labels: chartData.revenue_breakdown.map(d => d.name),
+                    datasets: [{
+                        data: chartData.revenue_breakdown.map(d => d.value),
+                        backgroundColor: [
+                            'rgb(34, 197, 94)',
+                            'rgb(59, 130, 246)',
+                            'rgb(168, 85, 247)',
+                            'rgb(251, 146, 60)',
+                            'rgb(236, 72, 153)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                    return context.label + ': Rp ' + context.parsed.toLocaleString('id-ID') + ' (' + percentage + '%)';
+                                }
                             }
                         }
                     }
                 }
-            }
-        });
+            });
+        } else {
+            document.getElementById('revenueChart').parentElement.innerHTML = '<p class="text-center text-gray-500 py-8">No revenue data available for this period</p>';
+        }
 
-        // Expense Breakdown Pie Chart
-        const expenseCtx = document.getElementById('expenseChart').getContext('2d');
-        new Chart(expenseCtx, {
-            type: 'doughnut',
-            data: {
-                labels: chartData.expense_breakdown.map(d => d.name),
-                datasets: [{
-                    data: chartData.expense_breakdown.map(d => d.value),
-                    backgroundColor: [
-                        'rgb(239, 68, 68)',
-                        'rgb(249, 115, 22)',
-                        'rgb(234, 179, 8)',
-                        'rgb(168, 85, 247)',
-                        'rgb(236, 72, 153)',
-                        'rgb(14, 165, 233)',
-                        'rgb(34, 197, 94)'
-                    ]
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                const percentage = ((context.parsed / total) * 100).toFixed(1);
-                                return context.label + ': Rp ' + context.parsed.toLocaleString('id-ID') + ' (' + percentage + '%)';
+        // Expense Breakdown Doughnut Chart
+        if (chartData.expense_breakdown && chartData.expense_breakdown.length > 0) {
+            const expenseCtx = document.getElementById('expenseChart').getContext('2d');
+            new Chart(expenseCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: chartData.expense_breakdown.map(d => d.name),
+                    datasets: [{
+                        data: chartData.expense_breakdown.map(d => d.value),
+                        backgroundColor: [
+                            'rgb(239, 68, 68)',
+                            'rgb(249, 115, 22)',
+                            'rgb(234, 179, 8)',
+                            'rgb(168, 85, 247)',
+                            'rgb(236, 72, 153)',
+                            'rgb(14, 165, 233)',
+                            'rgb(34, 197, 94)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                    return context.label + ': Rp ' + context.parsed.toLocaleString('id-ID') + ' (' + percentage + '%)';
+                                }
                             }
                         }
                     }
                 }
-            }
-        });
+            });
+        } else {
+            document.getElementById('expenseChart').parentElement.innerHTML = '<p class="text-center text-gray-500 py-8">No expense data available for this period</p>';
+        }
 
         // Budget vs Actual Bar Chart (Current Month)
-        const budgetCtx = document.getElementById('budgetChart').getContext('2d');
-        const currentMonthData = chartData.monthly_trend[chartData.monthly_trend.length - 1];
-        new Chart(budgetCtx, {
-            type: 'bar',
-            data: {
-                labels: ['Revenue', 'Expense', 'GOP'],
-                datasets: [
-                    {
-                        label: 'Actual',
-                        data: [
-                            currentMonthData.revenue_actual,
-                            currentMonthData.expense_actual,
-                            currentMonthData.gop_actual
-                        ],
-                        backgroundColor: [
-                            'rgba(34, 197, 94, 0.8)',
-                            'rgba(239, 68, 68, 0.8)',
-                            'rgba(59, 130, 246, 0.8)'
-                        ]
-                    },
-                    {
-                        label: 'Budget',
-                        data: [
-                            currentMonthData.revenue_budget,
-                            currentMonthData.expense_budget,
-                            currentMonthData.gop_budget
-                        ],
-                        backgroundColor: [
-                            'rgba(34, 197, 94, 0.4)',
-                            'rgba(239, 68, 68, 0.4)',
-                            'rgba(59, 130, 246, 0.4)'
-                        ]
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.dataset.label + ': Rp ' + context.parsed.y.toLocaleString('id-ID');
+        if (chartData.monthly_trend && chartData.monthly_trend.length > 0) {
+            const budgetCtx = document.getElementById('budgetChart').getContext('2d');
+            const currentMonthData = chartData.monthly_trend[chartData.monthly_trend.length - 1];
+            new Chart(budgetCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Revenue', 'Expense', 'GOP'],
+                    datasets: [
+                        {
+                            label: 'Actual',
+                            data: [
+                                currentMonthData.revenue_actual,
+                                currentMonthData.expense_actual,
+                                currentMonthData.gop_actual
+                            ],
+                            backgroundColor: [
+                                'rgba(34, 197, 94, 0.8)',
+                                'rgba(239, 68, 68, 0.8)',
+                                'rgba(59, 130, 246, 0.8)'
+                            ]
+                        },
+                        {
+                            label: 'Budget',
+                            data: [
+                                currentMonthData.revenue_budget,
+                                currentMonthData.expense_budget,
+                                currentMonthData.gop_budget
+                            ],
+                            backgroundColor: [
+                                'rgba(34, 197, 94, 0.4)',
+                                'rgba(239, 68, 68, 0.4)',
+                                'rgba(59, 130, 246, 0.4)'
+                            ]
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': Rp ' + context.parsed.y.toLocaleString('id-ID');
+                                }
                             }
                         }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            callback: function(value) {
-                                return 'Rp ' + (value / 1000000).toFixed(0) + 'M';
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'Rp ' + (value / 1000000).toFixed(0) + 'M';
+                                }
                             }
                         }
                     }
                 }
-            }
-        });
+            });
+        } else {
+            document.getElementById('budgetChart').parentElement.innerHTML = '<p class="text-center text-gray-500 py-8">No budget data available for this period</p>';
+        }
     </script>
     @endpush
 </x-app-layout>
