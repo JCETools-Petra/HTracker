@@ -49,9 +49,10 @@ class BudgetTemplateExport implements FromArray, WithStyles, WithColumnWidths, W
             ['Category ID', 'Department', 'Category Name', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
         ];
 
-        // Get all departments (top-level categories)
+        // Get all expense departments only (top-level categories with type='expense')
         $departments = FinancialCategory::forProperty($this->propertyId)
             ->whereNull('parent_id')
+            ->where('type', 'expense')
             ->orderBy('sort_order')
             ->get();
 
