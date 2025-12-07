@@ -46,6 +46,12 @@ class BudgetTemplateImport implements ToModel, WithHeadingRow, WithValidation
             return null;
         }
 
+        // Only allow budget import for expense type categories
+        if ($category->type !== 'expense') {
+            $this->errors[] = "Category ID {$categoryId} ({$category->name}) is not an expense category - only expense categories can have budget values";
+            return null;
+        }
+
         // Import budget for each month
         $months = [
             1 => 'january',
