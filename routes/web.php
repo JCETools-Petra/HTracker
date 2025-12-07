@@ -101,11 +101,15 @@ Route::prefix('admin')->middleware(['auth', 'verified', 'role:admin,owner'])->na
 
     // Financial Budgeting & P&L Routes for Admin
     Route::get('/financial/select-property', [\App\Http\Controllers\Admin\FinancialController::class, 'selectProperty'])->name('financial.select-property');
+    Route::get('/financial/{property}/dashboard', [\App\Http\Controllers\Admin\FinancialController::class, 'showDashboard'])->name('financial.dashboard');
     Route::get('/financial/{property}/input-actual', [\App\Http\Controllers\Admin\FinancialController::class, 'showInputActual'])->name('financial.input-actual');
     Route::post('/financial/{property}/input-actual', [\App\Http\Controllers\Admin\FinancialController::class, 'storeInputActual'])->name('financial.input-actual.store');
+    Route::post('/financial/{property}/copy-previous-month', [\App\Http\Controllers\Admin\FinancialController::class, 'copyFromPreviousMonth'])->name('financial.copy-previous-month');
     Route::get('/financial/{property}/input-budget', [\App\Http\Controllers\Admin\FinancialController::class, 'showInputBudget'])->name('financial.input-budget');
     Route::post('/financial/{property}/input-budget', [\App\Http\Controllers\Admin\FinancialController::class, 'storeInputBudget'])->name('financial.input-budget.store');
     Route::get('/financial/{property}/report', [\App\Http\Controllers\Admin\FinancialController::class, 'showReport'])->name('financial.report');
+    Route::get('/financial/{property}/export-excel', [\App\Http\Controllers\Admin\FinancialController::class, 'exportExcel'])->name('financial.export-excel');
+    Route::get('/financial/{property}/export-pdf', [\App\Http\Controllers\Admin\FinancialController::class, 'exportPdf'])->name('financial.export-pdf');
 
     // Financial Category Management for Admin
     Route::resource('financial-categories', \App\Http\Controllers\Admin\FinancialCategoryController::class);
@@ -184,11 +188,15 @@ Route::prefix('property')->middleware(['auth', 'verified', 'role:pengguna_proper
     Route::post('/occupancy/update', [PropertyIncomeController::class, 'updateOccupancy'])->name('occupancy.update');
 
     // Financial Budgeting & P&L Routes
+    Route::get('/financial/dashboard', [\App\Http\Controllers\FinancialController::class, 'showDashboard'])->name('financial.dashboard');
     Route::get('/financial/input-actual', [\App\Http\Controllers\FinancialController::class, 'showInputActual'])->name('financial.input-actual');
     Route::post('/financial/input-actual', [\App\Http\Controllers\FinancialController::class, 'storeInputActual'])->name('financial.input-actual.store');
+    Route::post('/financial/copy-previous-month', [\App\Http\Controllers\FinancialController::class, 'copyFromPreviousMonth'])->name('financial.copy-previous-month');
     Route::get('/financial/input-budget', [\App\Http\Controllers\FinancialController::class, 'showInputBudget'])->name('financial.input-budget');
     Route::post('/financial/input-budget', [\App\Http\Controllers\FinancialController::class, 'storeInputBudget'])->name('financial.input-budget.store');
     Route::get('/financial/report', [\App\Http\Controllers\FinancialController::class, 'showReport'])->name('financial.report');
+    Route::get('/financial/export-excel', [\App\Http\Controllers\FinancialController::class, 'exportExcel'])->name('financial.export-excel');
+    Route::get('/financial/export-pdf', [\App\Http\Controllers\FinancialController::class, 'exportPdf'])->name('financial.export-pdf');
 });
 
 // Grup E-commerce

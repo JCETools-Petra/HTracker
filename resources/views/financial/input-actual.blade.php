@@ -50,12 +50,25 @@
                     </form>
 
                     <div class="mb-4 p-4 bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded-lg">
-                        <p class="text-sm text-blue-800 dark:text-blue-200">
-                            <strong>Periode:</strong> {{ \Carbon\Carbon::create(2000, $month, 1)->format('F') }} {{ $year }}
-                        </p>
-                        <p class="text-xs text-blue-600 dark:text-blue-300 mt-1">
-                            Input data realisasi (Actual) dan anggaran (Budget) untuk bulan ini. Data pendapatan (Revenue) akan diambil otomatis dari pencatatan harian.
-                        </p>
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="text-sm text-blue-800 dark:text-blue-200">
+                                    <strong>Periode:</strong> {{ \Carbon\Carbon::create(2000, $month, 1)->format('F') }} {{ $year }}
+                                </p>
+                                <p class="text-xs text-blue-600 dark:text-blue-300 mt-1">
+                                    Input data realisasi (Actual) dan anggaran (Budget) untuk bulan ini. Data pendapatan (Revenue) akan diambil otomatis dari pencatatan harian.
+                                </p>
+                            </div>
+                            <!-- Copy from Previous Month Button -->
+                            <form method="POST" action="{{ route('property.financial.copy-previous-month') }}" class="inline-block" onsubmit="return confirm('Salin semua data dari bulan sebelumnya? Data yang ada akan ditimpa.');">
+                                @csrf
+                                <input type="hidden" name="year" value="{{ $year }}">
+                                <input type="hidden" name="month" value="{{ $month }}">
+                                <button type="submit" class="px-4 py-2 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700 whitespace-nowrap">
+                                    📋 Salin dari Bulan Lalu
+                                </button>
+                            </form>
+                        </div>
                     </div>
 
                     <!-- Input Form -->

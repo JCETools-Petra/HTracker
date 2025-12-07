@@ -109,6 +109,13 @@ class FinancialController extends Controller
         // Get P&L data
         $pnlData = $this->financialService->getPnL($property->id, $year, $month);
 
+        // Get additional data for enhanced features
+        $chartData = $this->financialService->getChartData($property->id, $year, $month);
+        $kpis = $this->financialService->getKPIs($property->id, $year, $month);
+        $comparative = $this->financialService->getComparativeAnalysis($property->id, $year, $month);
+        $alerts = $this->financialService->getBudgetAlerts($property->id, $year, $month);
+        $forecast = $this->financialService->getForecast($property->id, $year, $month);
+
         // Generate month options for dropdown
         $months = collect(range(1, 12))->map(function ($m) {
             return [
@@ -126,9 +133,146 @@ class FinancialController extends Controller
             'year',
             'month',
             'pnlData',
+            'chartData',
+            'kpis',
+            'comparative',
+            'alerts',
+            'forecast',
             'months',
             'years'
         ));
+    }
+
+    /**
+     * Export P&L report to Excel.
+     */
+    public function exportExcel(Request $request)
+    {
+        $user = Auth::user();
+        $property = $user->property;
+
+        if (!$property) {
+            abort(403, 'Akun Anda tidak terikat pada properti manapun.');
+        }
+
+        $year = $request->input('year', Carbon::now()->year);
+        $month = $request->input('month', Carbon::now()->month);
+
+        $fileName = 'PnL_' . $property->name . '_' . Carbon::create($year, $month, 1)->format('Y-m') . '.xlsx';
+
+        return \Maatwebsite\Excel\Facades\Excel::download(
+            new \App\Exports\PnLExport($property->id, $property->name, $year, $month),
+            $fileName
+        );
+    }
+
+    /**
+     * Export P&L report to PDF.
+     */
+    public function exportPdf(Request $request)
+    {
+        $user = Auth::user();
+        $property = $user->property;
+
+        if (!$property) {
+            abort(403, 'Akun Anda tidak terikat pada properti manapun.');
+        }
+
+        $year = $request->input('year', Carbon::now()->year);
+        $month = $request->input('month', Carbon::now()->month);
+
+        $pnlData = $this->financialService->getPnL($property->id, $year, $month);
+        $kpis = $this->financialService->getKPIs($property->id, $year, $month);
+        $comparative = $this->financialService->getComparativeAnalysis($property->id, $year, $month);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('financial.pdf.pnl-report', compact(
+            'property',
+            'year',
+            'month',
+            'pnlData',
+            'kpis',
+            'comparative'
+        ));
+
+        $fileName = 'PnL_' . $property->name . '_' . Carbon::create($year, $month, 1)->format('Y-m') . '.pdf';
+
+        return $pdf->download($fileName);
+    }
+
+    /**
+     * Show financial dashboard.
+     */
+    public function showDashboard(Request $request)
+    {
+        $user = Auth::user();
+        $property = $user->property;
+
+        if (!$property) {
+            abort(403, 'Akun Anda tidak terikat pada properti manapun.');
+        }
+
+        $year = $request->input('year', Carbon::now()->year);
+        $month = $request->input('month', Carbon::now()->month);
+
+        $dashboardData = $this->financialService->getDashboardSummary($property->id, $year, $month);
+        $chartData = $this->financialService->getChartData($property->id, $year, $month);
+        $alerts = $this->financialService->getBudgetAlerts($property->id, $year, $month);
+
+        return view('financial.dashboard', compact(
+            'property',
+            'year',
+            'month',
+            'dashboardData',
+            'chartData',
+            'alerts'
+        ));
+    }
+
+    /**
+     * Copy data from previous month (bulk input feature).
+     */
+    public function copyFromPreviousMonth(Request $request)
+    {
+        $user = Auth::user();
+        $property = $user->property;
+
+        if (!$property) {
+            abort(403, 'Akun Anda tidak terikat pada properti manapun.');
+        }
+
+        $validated = $request->validate([
+            'year' => 'required|integer|min:2020|max:2100',
+            'month' => 'required|integer|min:1|max:12',
+        ]);
+
+        // Get previous month
+        $date = Carbon::create($validated['year'], $validated['month'], 1);
+        $prevMonth = $date->copy()->subMonth();
+
+        // Get all entries from previous month
+        $prevEntries = \App\Models\FinancialEntry::where('property_id', $property->id)
+            ->where('year', $prevMonth->year)
+            ->where('month', $prevMonth->month)
+            ->get();
+
+        // Copy to current month
+        $copiedCount = 0;
+        foreach ($prevEntries as $entry) {
+            $this->financialService->saveEntry(
+                $property->id,
+                $entry->financial_category_id,
+                $validated['year'],
+                $validated['month'],
+                $entry->actual_value,
+                $entry->budget_value
+            );
+            $copiedCount++;
+        }
+
+        return redirect()->route('property.financial.input-actual', [
+            'year' => $validated['year'],
+            'month' => $validated['month']
+        ])->with('success', "Berhasil menyalin $copiedCount data dari bulan sebelumnya.");
     }
 
     /**
