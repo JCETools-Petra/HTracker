@@ -207,28 +207,28 @@
 
             <!-- Charts Section -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- Revenue & Expense Trend -->
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
                     <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Revenue & Expense Trend (12 Months)</h3>
-                    <canvas id="trendChart" height="250"></canvas>
+                    <div class="relative h-64 w-full"> <canvas id="trendChart"></canvas>
+                    </div>
                 </div>
 
-                <!-- Revenue Breakdown -->
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
                     <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Revenue Breakdown</h3>
-                    <canvas id="revenueChart" height="250"></canvas>
+                    <div class="relative h-64 w-full"> <canvas id="revenueChart"></canvas>
+                    </div>
                 </div>
 
-                <!-- Expense Breakdown -->
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
                     <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Expense by Department</h3>
-                    <canvas id="expenseChart" height="250"></canvas>
+                    <div class="relative h-64 w-full"> <canvas id="expenseChart"></canvas>
+                    </div>
                 </div>
 
-                <!-- Budget vs Actual -->
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
                     <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Budget vs Actual</h3>
-                    <canvas id="budgetChart" height="250"></canvas>
+                    <div class="relative h-64 w-full"> <canvas id="budgetChart"></canvas>
+                    </div>
                 </div>
             </div>
 
