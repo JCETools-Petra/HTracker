@@ -22,11 +22,17 @@ class BudgetTemplateImport implements ToModel, WithHeadingRow, WithValidation
         $this->year = $year;
     }
 
+    public function headingRow(): int
+    {
+        return 4; // Header row is on row 4 (after title, year info, and empty row)
+    }
+
     public function model(array $row)
     {
         $categoryId = $row['category_id'] ?? null;
 
-        if (!$categoryId) {
+        // Skip rows without category ID (department headers, section headers, empty rows)
+        if (!$categoryId || empty($categoryId)) {
             return null;
         }
 
@@ -59,12 +65,10 @@ class BudgetTemplateImport implements ToModel, WithHeadingRow, WithValidation
         foreach ($months as $monthNumber => $monthName) {
             $budgetValue = $row[$monthName] ?? 0;
 
-            // Skip if no budget value
-            if (empty($budgetValue) || $budgetValue == 0) {
-                continue;
-            }
+            // Convert to numeric if it's a string
+            $budgetValue = is_numeric($budgetValue) ? floatval($budgetValue) : 0;
 
-            // Update or create financial entry
+            // Update or create financial entry (even for 0 values to ensure consistency)
             FinancialEntry::updateOrCreate(
                 [
                     'property_id' => $this->propertyId,
@@ -86,7 +90,7 @@ class BudgetTemplateImport implements ToModel, WithHeadingRow, WithValidation
     public function rules(): array
     {
         return [
-            'category_id' => 'required|integer',
+            'category_id' => 'nullable|integer', // Made nullable to allow header/section rows
             'january' => 'nullable|numeric|min:0',
             'february' => 'nullable|numeric|min:0',
             'march' => 'nullable|numeric|min:0',
