@@ -15,6 +15,7 @@ class BudgetTemplateImport implements ToModel, WithHeadingRow, WithValidation
     protected $year;
     protected $importedCount = 0;
     protected $errors = [];
+    protected $currentRow = 5; // Starting from row 5 (first data row after header at row 4)
 
     public function __construct(int $propertyId, int $year)
     {
@@ -29,6 +30,7 @@ class BudgetTemplateImport implements ToModel, WithHeadingRow, WithValidation
 
     public function model(array $row)
     {
+        $rowNumber = $this->currentRow++;
         $categoryId = $row['category_id'] ?? null;
 
         // Skip rows without category ID (department headers, section headers, empty rows)
@@ -42,13 +44,13 @@ class BudgetTemplateImport implements ToModel, WithHeadingRow, WithValidation
             ->first();
 
         if (!$category) {
-            $this->errors[] = "Category ID {$categoryId} not found or doesn't belong to this property";
+            $this->errors[] = "Baris {$rowNumber}: Category ID {$categoryId} tidak ditemukan atau tidak termasuk dalam properti ini";
             return null;
         }
 
         // Only allow budget import for expense type categories
         if ($category->type !== 'expense') {
-            $this->errors[] = "Category ID {$categoryId} ({$category->name}) is not an expense category - only expense categories can have budget values";
+            $this->errors[] = "Baris {$rowNumber}: Category ID {$categoryId} ({$category->name}) bukan kategori expense - hanya kategori expense yang bisa memiliki budget";
             return null;
         }
 
