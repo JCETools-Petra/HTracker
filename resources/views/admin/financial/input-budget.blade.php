@@ -42,6 +42,56 @@
                         </div>
                     </form>
 
+                    <!-- Template Download/Upload Section -->
+                    <div class="mb-6 p-4 bg-green-50 dark:bg-green-900 border border-green-200 dark:border-green-700 rounded-lg shadow">
+                        <h3 class="text-lg font-semibold text-green-800 dark:text-green-200 mb-3">Template Excel Budget</h3>
+                        <p class="text-sm text-green-700 dark:text-green-300 mb-4">
+                            Download template Excel untuk mengisi budget per bulan (Januari - Desember), kemudian upload kembali untuk import otomatis.
+                        </p>
+
+                        @if (session('warning'))
+                            <div class="mb-4 font-medium text-sm text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-700 border border-yellow-400 dark:border-yellow-600 rounded-md p-3">
+                                {{ session('warning') }}
+                            </div>
+                        @endif
+
+                        @if (session('error'))
+                            <div class="mb-4 font-medium text-sm text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-700 border border-red-400 dark:border-red-600 rounded-md p-3">
+                                {{ session('error') }}
+                            </div>
+                        @endif
+
+                        <div class="flex flex-col md:flex-row md:items-center md:space-x-4 space-y-4 md:space-y-0">
+                            <!-- Download Template Button -->
+                            <div>
+                                <a href="{{ route('admin.financial.budget-template.download', ['property' => $property->id, 'year' => $year]) }}"
+                                   class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium shadow-sm">
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    Download Template Excel
+                                </a>
+                            </div>
+
+                            <!-- Upload Form -->
+                            <div class="flex-1">
+                                <form method="POST" action="{{ route('admin.financial.budget-template.import', $property->id) }}" enctype="multipart/form-data" class="flex items-center space-x-2">
+                                    @csrf
+                                    <input type="hidden" name="year" value="{{ $year }}">
+                                    <input type="file"
+                                           name="file"
+                                           accept=".xlsx,.xls"
+                                           required
+                                           class="block w-full text-sm text-gray-900 dark:text-gray-300 border border-gray-300 dark:border-gray-700 rounded-md cursor-pointer bg-gray-50 dark:bg-gray-900 focus:outline-none">
+                                    <button type="submit"
+                                            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium shadow-sm whitespace-nowrap">
+                                        Upload & Import
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="mb-4 p-4 bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded-lg">
                         <p class="text-sm text-blue-800 dark:text-blue-200">
                             <strong>Tahun:</strong> {{ $year }}
