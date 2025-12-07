@@ -31,10 +31,18 @@ class BudgetTemplateImport implements ToModel, WithHeadingRow, WithValidation
     public function model(array $row)
     {
         $rowNumber = $this->currentRow++;
+
+        // Debug: Log setiap baris yang dibaca
+        \Log::info("Import Row {$rowNumber}", [
+            'raw_row' => $row,
+            'category_id' => $row['category_id'] ?? 'NULL',
+        ]);
+
         $categoryId = $row['category_id'] ?? null;
 
         // Skip rows without category ID (department headers, section headers, empty rows)
         if (!$categoryId || empty($categoryId)) {
+            \Log::info("Skipping row {$rowNumber} - no category ID");
             return null;
         }
 
@@ -44,13 +52,17 @@ class BudgetTemplateImport implements ToModel, WithHeadingRow, WithValidation
             ->first();
 
         if (!$category) {
-            $this->errors[] = "Baris {$rowNumber}: Category ID {$categoryId} tidak ditemukan atau tidak termasuk dalam properti ini";
+            $error = "Baris {$rowNumber}: Category ID {$categoryId} tidak ditemukan atau tidak termasuk dalam properti ini";
+            $this->errors[] = $error;
+            \Log::warning($error);
             return null;
         }
 
         // Only allow budget import for expense type categories
         if ($category->type !== 'expense') {
-            $this->errors[] = "Baris {$rowNumber}: Category ID {$categoryId} ({$category->name}) bukan kategori expense - hanya kategori expense yang bisa memiliki budget";
+            $error = "Baris {$rowNumber}: Category ID {$categoryId} ({$category->name}) bukan kategori expense (type: {$category->type}) - hanya kategori expense yang bisa memiliki budget";
+            $this->errors[] = $error;
+            \Log::warning($error);
             return null;
         }
 
@@ -70,6 +82,7 @@ class BudgetTemplateImport implements ToModel, WithHeadingRow, WithValidation
             12 => 'december',
         ];
 
+        $successCount = 0;
         foreach ($months as $monthNumber => $monthName) {
             $budgetValue = $row[$monthName] ?? 0;
 
@@ -90,7 +103,10 @@ class BudgetTemplateImport implements ToModel, WithHeadingRow, WithValidation
             );
 
             $this->importedCount++;
+            $successCount++;
         }
+
+        \Log::info("Successfully imported {$successCount} months for Category ID {$categoryId} ({$category->name})");
 
         return null; // We're not creating models, just updating entries
     }
