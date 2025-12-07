@@ -17,7 +17,6 @@
 
     <div class="py-12">
         <div class="max-w-full mx-auto sm:px-6 lg:px-8 space-y-6">
-            <!-- Period Selection & Export Actions -->
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900 dark:text-gray-100">
                     <form method="GET" action="{{ route('admin.financial.report', $property->id) }}" class="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg shadow">
@@ -46,7 +45,6 @@
                         </div>
                     </form>
 
-                    <!-- Export Buttons -->
                     <div class="flex flex-wrap gap-3 justify-end">
                         <a href="{{ route('admin.financial.export-excel', ['property' => $property->id, 'year' => $year, 'month' => $month]) }}"
                            class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm">
@@ -60,9 +58,7 @@
                 </div>
             </div>
 
-            <!-- KPI Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <!-- GOP Percentage -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
                     <div class="text-sm font-medium text-gray-500 dark:text-gray-400">GOP %</div>
                     <div class="mt-2 text-3xl font-bold {{ $kpis['gop_percentage'] > 0 ? 'text-green-600' : 'text-red-600' }}">
@@ -71,7 +67,6 @@
                     <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">Gross Operating Profit</div>
                 </div>
 
-                <!-- Labor Cost % -->
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
                     <div class="text-sm font-medium text-gray-500 dark:text-gray-400">Labor Cost %</div>
                     <div class="mt-2 text-3xl font-bold text-blue-600">
@@ -80,7 +75,6 @@
                     <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">of Revenue</div>
                 </div>
 
-                <!-- F&B Cost % -->
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
                     <div class="text-sm font-medium text-gray-500 dark:text-gray-400">F&B Cost %</div>
                     <div class="mt-2 text-3xl font-bold text-purple-600">
@@ -89,17 +83,25 @@
                     <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">of F&B Revenue</div>
                 </div>
 
-                <!-- RevPAR -->
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
                     <div class="text-sm font-medium text-gray-500 dark:text-gray-400">RevPAR</div>
                     <div class="mt-2 text-3xl font-bold text-indigo-600">
                         Rp {{ number_format($kpis['revenue_per_available_room'], 0) }}
                     </div>
-                    <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">Revenue per Available Room</div>
+                    <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">Revenue / Avail. Room</div>
+                </div>
+
+                <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
+                    <div class="text-sm font-medium text-gray-500 dark:text-gray-400">CPOR</div>
+                    <div class="mt-2 text-3xl font-bold text-orange-600">
+                        Rp {{ number_format($kpis['cost_per_occupied_room'], 0) }}
+                    </div>
+                    <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Cost / Occ. Room ({{ number_format($kpis['total_occupied_rooms']) }})
+                    </div>
                 </div>
             </div>
 
-            <!-- Budget Alerts -->
             @if(count($alerts) > 0)
             <div class="bg-yellow-50 dark:bg-yellow-900 border-l-4 border-yellow-400 p-4 rounded-lg">
                 <div class="flex">
@@ -131,7 +133,6 @@
             </div>
             @endif
 
-            <!-- Comparative Analysis -->
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
                     <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Comparative Analysis</h3>
@@ -218,7 +219,6 @@
                 </div>
             </div>
 
-            <!-- Charts Section -->
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-6">
                     <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Revenue & Expense Trend (12 Months)</h3>
@@ -245,7 +245,6 @@
                 </div>
             </div>
 
-            <!-- Forecast Section -->
             @if(count($forecast) > 0)
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6">
@@ -279,7 +278,6 @@
             </div>
             @endif
 
-            <!-- P&L Report Table -->
             <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900 dark:text-gray-100">
                     <div class="mb-4 p-4 bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded-lg">
@@ -288,7 +286,6 @@
                         </p>
                     </div>
 
-                    <!-- P&L Report Table -->
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                             <thead class="bg-gray-800 dark:bg-gray-900">
@@ -314,7 +311,6 @@
                                 </tr>
                             </thead>
                             <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                                <!-- REVENUE SECTION -->
                                 <tr class="bg-green-50 dark:bg-green-900">
                                     <td colspan="7" class="px-6 py-3 text-sm font-bold text-green-800 dark:text-green-200 uppercase">
                                         REVENUE (PENDAPATAN)
@@ -327,7 +323,6 @@
                                     @endif
                                 @endforeach
 
-                                <!-- Total Revenue -->
                                 <tr class="bg-green-100 dark:bg-green-800 border-t-2 border-green-600">
                                     <td class="px-6 py-3 text-sm font-bold text-green-900 dark:text-green-100">
                                         TOTAL REVENUE
@@ -352,7 +347,6 @@
                                     </td>
                                 </tr>
 
-                                <!-- EXPENSES SECTION -->
                                 <tr class="bg-red-50 dark:bg-red-900">
                                     <td colspan="7" class="px-6 py-3 text-sm font-bold text-red-800 dark:text-red-200 uppercase">
                                         EXPENSES (PENGELUARAN)
@@ -365,7 +359,6 @@
                                     @endif
                                 @endforeach
 
-                                <!-- Total Expenses -->
                                 <tr class="bg-red-100 dark:bg-red-800 border-t-2 border-red-600">
                                     <td class="px-6 py-3 text-sm font-bold text-red-900 dark:text-red-100">
                                         TOTAL EXPENSES
@@ -390,7 +383,6 @@
                                     </td>
                                 </tr>
 
-                                <!-- GROSS OPERATING PROFIT -->
                                 <tr class="bg-blue-100 dark:bg-blue-800 border-t-4 border-blue-600">
                                     <td class="px-6 py-4 text-base font-bold text-blue-900 dark:text-blue-100 uppercase">
                                         GROSS OPERATING PROFIT (GOP)

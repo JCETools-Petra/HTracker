@@ -43,10 +43,10 @@ class BudgetTemplateExport implements FromArray, WithStyles, WithColumnWidths, W
 
         // Title and header rows
         $data = [
-            ['BUDGET TEMPLATE - ' . $propertyName, '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
-            ['Tahun: ' . $this->year, '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
-            [], // Empty row
-            ['Category ID', 'Department', 'Category Name', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+            ['BUDGET TEMPLATE - ' . $propertyName, '', '', '', '', '', '', '', '', '', '', '', '', '', ''], // Baris 1: Judul
+            ['Tahun: ' . $this->year, '', '', '', '', '', '', '', '', '', '', '', '', '', ''], // Baris 2: Tahun
+            [''], // Baris 3: FIXED (Menggunakan [''] agar baris ini tidak hilang/skip)
+            ['Category ID', 'Department', 'Category Name', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'], // Baris 4: Header Data
         ];
 
         // Get all expense departments only (top-level categories with type='expense')
@@ -69,7 +69,7 @@ class BudgetTemplateExport implements FromArray, WithStyles, WithColumnWidths, W
             $this->addCategoriesRecursive($data, $department, 1);
 
             // Add empty row between departments
-            $data[] = ['', '', '', '', '', '', '', '', '', '', '', '', '', '', ''];
+            $data[] = ['']; // FIXED: Gunakan [''] untuk pemisah antar departemen
         }
 
         return $data;
@@ -152,7 +152,7 @@ class BudgetTemplateExport implements FromArray, WithStyles, WithColumnWidths, W
         ]);
         $sheet->getRowDimension(2)->setRowHeight(20);
 
-        // Header row styling
+        // Header row styling (Baris 4)
         $sheet->getStyle('A4:O4')->applyFromArray([
             'font' => [
                 'bold' => true,

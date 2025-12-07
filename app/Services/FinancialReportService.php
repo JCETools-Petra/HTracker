@@ -6,6 +6,7 @@ use App\Models\FinancialCategory;
 use App\Models\FinancialEntry;
 use App\Models\DailyIncome;
 use App\Models\Booking;
+use App\Models\DailyOccupancy;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -124,6 +125,9 @@ class FinancialReportService
     /**
      * Recursive processor that uses in-memory context data instead of DB queries.
      */
+    /**
+     * Recursive processor that uses in-memory context data instead of DB queries.
+     */
     private function processCategoryRecursive(FinancialCategory $category, array $context, int $level = 0): array
     {
         $data = [
@@ -137,8 +141,10 @@ class FinancialReportService
             'allows_input' => $category->allowsManualInput(),
             'actual_current' => 0,
             'budget_current' => 0,
+            'forecast_current' => 0, // [BARU]
             'actual_ytd' => 0,
             'budget_ytd' => 0,
+            'forecast_ytd' => 0,     // [BARU]
             'variance_current' => 0,
             'variance_ytd' => 0,
             'children' => [],
@@ -152,8 +158,11 @@ class FinancialReportService
                 // Accumulate children values
                 $data['actual_current'] += $childData['actual_current'];
                 $data['budget_current'] += $childData['budget_current'];
+                $data['forecast_current'] += $childData['forecast_current']; // [BARU]
+                
                 $data['actual_ytd'] += $childData['actual_ytd'];
                 $data['budget_ytd'] += $childData['budget_ytd'];
+                $data['forecast_ytd'] += $childData['forecast_ytd'];         // [BARU]
             }
         } else {
             // Leaf Node Logic
@@ -163,6 +172,9 @@ class FinancialReportService
                 $data['actual_ytd'] = $context['auto_values']['ytd'][$category->code];
                 $data['budget_current'] = 0; 
                 $data['budget_ytd'] = 0;
+                // Auto values usually don't have manual forecast input
+                $data['forecast_current'] = 0; 
+                $data['forecast_ytd'] = 0;
             } else {
                 // Use Manual Entries from Map
                 $entryCurrent = $context['entries_current']->get($category->id);
@@ -170,13 +182,16 @@ class FinancialReportService
 
                 $data['actual_current'] = $entryCurrent ? $entryCurrent->actual_value : 0;
                 $data['budget_current'] = $entryCurrent ? $entryCurrent->budget_value : 0;
+                $data['forecast_current'] = $entryCurrent ? $entryCurrent->forecast_value : 0; // [BARU]
                 
                 $data['actual_ytd'] = $entryYtd ? $entryYtd->total_actual : 0;
                 $data['budget_ytd'] = $entryYtd ? $entryYtd->total_budget : 0;
+                // Pastikan query YTD di getPnL sudah diupdate untuk mengambil SUM(forecast_value) as total_forecast
+                $data['forecast_ytd'] = $entryYtd ? ($entryYtd->total_forecast ?? 0) : 0;      // [BARU]
             }
         }
 
-        // Calculate Variances
+        // Calculate Variances (Actual vs Budget)
         $data['variance_current'] = $data['actual_current'] - $data['budget_current'];
         $data['variance_ytd'] = $data['actual_ytd'] - $data['budget_ytd'];
 
@@ -309,7 +324,8 @@ class FinancialReportService
         int $year,
         int $month,
         ?float $actualValue = null,
-        ?float $budgetValue = null
+        ?float $budgetValue = null,
+        ?float $forecastValue = null // Parameter baru
     ): FinancialEntry {
         $entry = FinancialEntry::firstOrNew([
             'property_id' => $propertyId,
@@ -317,22 +333,17 @@ class FinancialReportService
             'year' => $year,
             'month' => $month,
         ]);
-
-        // Only update fields that are explicitly provided (not null)
-        if (!is_null($actualValue)) {
-            $entry->actual_value = $actualValue;
-        }
-
-        if (!is_null($budgetValue)) {
-            $entry->budget_value = $budgetValue;
-        }
-
-        // Set defaults for new records if values are missing
+    
+        if (!is_null($actualValue)) $entry->actual_value = $actualValue;
+        if (!is_null($budgetValue)) $entry->budget_value = $budgetValue;
+        if (!is_null($forecastValue)) $entry->forecast_value = $forecastValue; // Simpan forecast
+    
         if (!$entry->exists) {
             $entry->actual_value = $entry->actual_value ?? 0;
             $entry->budget_value = $entry->budget_value ?? 0;
+            $entry->forecast_value = $entry->forecast_value ?? 0;
         }
-
+    
         $entry->save();
         return $entry;
     }
@@ -516,14 +527,13 @@ class FinancialReportService
     public function getKPIs(int $propertyId, int $year, int $month): array
     {
         $pnl = $this->getPnL($propertyId, $year, $month);
-
+    
         $totalRevenue = $pnl['totals']['total_revenue']['actual_current'];
         $expense = $pnl['totals']['total_expenses']['actual_current'];
         $gop = $pnl['totals']['gross_operating_profit']['actual_current'];
-
-        // 1. Cari Room Revenue Murni (Sesuai Dashboard yang menggunakan kolom total_rooms_revenue)
+    
+        // 1. Cari Room Revenue Murni
         $roomRevenue = 0;
-        
         $findRoomRevenueRecursive = function($categories) use (&$findRoomRevenueRecursive, &$roomRevenue) {
             foreach ($categories as $category) {
                 if (($category['code'] ?? '') === 'ROOM_REV') {
@@ -535,12 +545,12 @@ class FinancialReportService
             }
         };
         $findRoomRevenueRecursive($pnl['categories']);
-
-        // 2. Logic F&B
+    
+        // 2. Logic F&B & Labor
         $laborCost = 0;
         $fnbRevenue = 0;
         $fnbCost = 0;
-
+    
         foreach ($pnl['categories'] as $category) {
             if ($category['type'] === 'expense') {
                 $laborCost += $this->sumPayrollRecursive($category);
@@ -557,22 +567,33 @@ class FinancialReportService
                 }
             }
         }
-
+    
         $property = \App\Models\Property::find($propertyId);
         $roomCount = $property->total_rooms ?? 1;
         $daysInMonth = Carbon::create($year, $month, 1)->daysInMonth;
         $availableRooms = $roomCount * $daysInMonth;
-
+    
+        // ==========================================
+        // LOGIC BARU: CPOR (Cost Per Occupied Room)
+        // ==========================================
+        
+        // Ambil total kamar terjual dari tabel DailyOccupancy
+        $occupiedRooms = DailyOccupancy::where('property_id', $propertyId)
+            ->whereYear('date', $year)
+            ->whereMonth('date', $month)
+            ->sum('occupied_rooms');
+    
         return [
             'gop_percentage' => $totalRevenue > 0 ? ($gop / $totalRevenue) * 100 : 0,
             'labor_cost_percentage' => $totalRevenue > 0 ? ($laborCost / $totalRevenue) * 100 : 0,
             'labor_cost' => $laborCost,
             'fnb_cost_percentage' => $fnbRevenue > 0 ? ($fnbCost / $fnbRevenue) * 100 : 0,
             'expense_per_available_room' => $availableRooms > 0 ? $expense / $availableRooms : 0,
-            
-            // PERBAIKAN: RevPAR sekarang menggunakan Room Revenue Murni (Strict)
-            // Ini untuk menyamakan dengan Dashboard Admin yang menggunakan rumus: totalRoomRevenue / totalAvailableRooms
             'revenue_per_available_room' => $availableRooms > 0 ? $roomRevenue / $availableRooms : 0,
+            
+            // Metric Baru
+            'total_occupied_rooms' => $occupiedRooms,
+            'cost_per_occupied_room' => $occupiedRooms > 0 ? $expense / $occupiedRooms : 0,
         ];
     }
 

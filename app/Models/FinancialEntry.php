@@ -22,18 +22,15 @@ class FinancialEntry extends Model
         'month',
         'actual_value',
         'budget_value',
+        'forecast_value', // <--- Tambahkan ini
     ];
-
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
+    
     protected $casts = [
         'year' => 'integer',
         'month' => 'integer',
         'actual_value' => 'decimal:2',
         'budget_value' => 'decimal:2',
+        'forecast_value' => 'decimal:2', // <--- Tambahkan ini
     ];
 
     /**
