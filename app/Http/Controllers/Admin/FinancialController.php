@@ -336,10 +336,17 @@ class FinancialController extends Controller
             $errors = $import->getErrors();
 
             if (count($errors) > 0) {
+                // Format errors as HTML list for better readability
+                $errorList = '<ul class="list-disc ml-5">';
+                foreach ($errors as $error) {
+                    $errorList .= '<li>' . $error . '</li>';
+                }
+                $errorList .= '</ul>';
+
                 return redirect()->route('admin.financial.input-budget', [
                     'property' => $property->id,
                     'year' => $validated['year']
-                ])->with('warning', "Import selesai dengan {$importedCount} data berhasil, tetapi ada beberapa error: " . implode(', ', $errors));
+                ])->with('warning', "Import selesai dengan {$importedCount} data berhasil. Error yang terjadi: " . $errorList);
             }
 
             return redirect()->route('admin.financial.input-budget', [

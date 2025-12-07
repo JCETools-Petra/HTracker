@@ -50,8 +50,8 @@
                         </p>
 
                         @if (session('warning'))
-                            <div class="mb-4 font-medium text-sm text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-700 border border-yellow-400 dark:border-yellow-600 rounded-md p-3">
-                                {{ session('warning') }}
+                            <div class="mb-4 text-sm text-yellow-800 dark:text-yellow-200 bg-yellow-100 dark:bg-yellow-700 border border-yellow-400 dark:border-yellow-600 rounded-md p-3">
+                                {!! session('warning') !!}
                             </div>
                         @endif
 
