@@ -100,6 +100,11 @@ class BudgetTemplateImport implements ToModel, WithHeadingRow, WithValidation
             $rawValue = $row[$monthName] ?? 0;
             $budgetValue = $rawValue;
 
+            // Handle null or empty string as 0
+            if (is_null($budgetValue) || $budgetValue === '') {
+                $budgetValue = 0;
+            }
+
             // Convert to numeric, handling formatted numbers with thousand separators
             if (is_string($budgetValue)) {
                 $budgetValue = trim($budgetValue);
