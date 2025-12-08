@@ -86,10 +86,41 @@ class BudgetTemplateImport implements ToModel, WithHeadingRow, WithValidation
         $monthlyValues = [];
 
         foreach ($months as $monthNumber => $monthName) {
-            $budgetValue = $row[$monthName] ?? 0;
+            $rawValue = $row[$monthName] ?? 0;
+            $budgetValue = $rawValue;
 
-            // Convert to numeric if it's a string
+            // Convert to numeric, handling formatted numbers with thousand separators
+            if (is_string($budgetValue)) {
+                $budgetValue = trim($budgetValue);
+
+                // Remove thousand separators but preserve decimal separator
+                // Common formats: "1,200,000.50" (US), "1.200.000,50" (EU/ID)
+                // Strategy: Remove all non-digit chars except last dot/comma (which is decimal)
+
+                // First, remove currency symbols and spaces
+                $budgetValue = preg_replace('/[^\d,.\-]/', '', $budgetValue);
+
+                // If there's a comma after a dot, it's EU format: 1.200,50 -> 1200.50
+                if (strpos($budgetValue, '.') !== false && strrpos($budgetValue, ',') > strrpos($budgetValue, '.')) {
+                    $budgetValue = str_replace('.', '', $budgetValue); // Remove thousand separator (dot)
+                    $budgetValue = str_replace(',', '.', $budgetValue); // Convert decimal comma to dot
+                }
+                // Otherwise, it's US/standard format: 1,200.50 or just 1,200
+                else {
+                    $budgetValue = str_replace(',', '', $budgetValue); // Remove thousand separator (comma)
+                }
+            }
             $budgetValue = is_numeric($budgetValue) ? floatval($budgetValue) : 0;
+
+            // Log conversion for debugging (only if value was converted from string)
+            if (is_string($rawValue) && $rawValue !== '' && $budgetValue != $rawValue) {
+                \Log::debug("Converted budget value for {$monthName}", [
+                    'category_id' => $categoryId,
+                    'month' => $monthName,
+                    'raw_value' => $rawValue,
+                    'parsed_value' => $budgetValue,
+                ]);
+            }
 
             $monthlyValues[$monthName] = $budgetValue;
 
