@@ -17,6 +17,7 @@ class Kernel extends ConsoleKernel
         Commands\CheckoutPropertyReservations::class,
         Commands\VerifyBudgetData::class,
         Commands\ShowBudgetDetails::class,
+        Commands\FixBudgetJanuary::class,
     ];
 
     /**
