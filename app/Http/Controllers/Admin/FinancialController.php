@@ -278,11 +278,45 @@ class FinancialController extends Controller
             'entries' => 'required|array',
             'entries.*.category_id' => 'required|exists:financial_categories,id',
             'entries.*.budget_value' => 'required|numeric|min:0',
+            'mode' => 'nullable|in:replace,update', // New: mode parameter
         ]);
+
+        $mode = $validated['mode'] ?? 'replace'; // Default to replace mode
+        $updatedCount = 0;
+        $skippedCount = 0;
 
         // Distribute annual budget across all 12 months
         foreach ($validated['entries'] as $entry) {
             $monthlyBudget = $entry['budget_value'] / 12;
+
+            // Check if data already exists for this category/year
+            $existingCount = \App\Models\FinancialEntry::where('property_id', $property->id)
+                ->where('financial_category_id', $entry['category_id'])
+                ->where('year', $validated['year'])
+                ->count();
+
+            if ($existingCount > 0 && $mode === 'update') {
+                // Skip if mode is 'update' and data exists (prevent overwrite)
+                \Log::warning("Skipped budget update for category {$entry['category_id']} - data already exists", [
+                    'property_id' => $property->id,
+                    'year' => $validated['year'],
+                    'mode' => $mode,
+                    'existing_entries' => $existingCount
+                ]);
+                $skippedCount++;
+                continue;
+            }
+
+            // Log the operation for audit
+            \Log::info("Saving budget for category {$entry['category_id']}", [
+                'property_id' => $property->id,
+                'category_id' => $entry['category_id'],
+                'year' => $validated['year'],
+                'yearly_total' => $entry['budget_value'],
+                'monthly_value' => $monthlyBudget,
+                'mode' => $mode,
+                'existing_entries' => $existingCount,
+            ]);
 
             for ($month = 1; $month <= 12; $month++) {
                 // PERBAIKAN: Gunakan null untuk actual_value agar tidak menimpa data yang sudah ada
@@ -295,12 +329,20 @@ class FinancialController extends Controller
                     $monthlyBudget
                 );
             }
+            $updatedCount++;
+        }
+
+        $message = "Budget tahunan berhasil disimpan untuk {$property->name}. ";
+        $message .= "Updated: {$updatedCount} kategori";
+
+        if ($skippedCount > 0) {
+            $message .= ", Skipped: {$skippedCount} kategori (data already exists)";
         }
 
         return redirect()->route('admin.financial.input-budget', [
             'property' => $property->id,
             'year' => $validated['year']
-        ])->with('success', 'Budget tahunan berhasil disimpan untuk ' . $property->name);
+        ])->with('success', $message);
     }
 
     /**
