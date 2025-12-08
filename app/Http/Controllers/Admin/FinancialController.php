@@ -375,14 +375,21 @@ class FinancialController extends Controller
             \Maatwebsite\Excel\Facades\Excel::import($import, $request->file('file'));
 
             $importedCount = $import->getImportedCount();
+            $skippedCount = $import->getSkippedCount();
             $errors = $import->getErrors();
 
             // Check if no data was imported
             if ($importedCount == 0 && count($errors) == 0) {
+                $message = 'Tidak ada data yang berhasil diimport.';
+                if ($skippedCount > 0) {
+                    $message .= " {$skippedCount} baris dilewati karena semua nilai bulan kosong/nol.";
+                }
+                $message .= ' Pastikan file Excel berisi data budget yang valid. Cek log di storage/logs/laravel.log untuk detail.';
+
                 return redirect()->route('admin.financial.input-budget', [
                     'property' => $property->id,
                     'year' => $validated['year']
-                ])->with('error', 'Tidak ada data yang berhasil diimport. Pastikan file Excel berisi data dengan Category ID yang valid. Cek log di storage/logs/laravel.log untuk detail.');
+                ])->with('error', $message);
             }
 
             if (count($errors) > 0) {
@@ -405,10 +412,16 @@ class FinancialController extends Controller
             }
 
             $months = $importedCount / 12; // Each category = 12 months
+            $message = "Berhasil mengimport budget untuk {$months} kategori ({$importedCount} bulan) di " . $property->name;
+
+            if ($skippedCount > 0) {
+                $message .= ". {$skippedCount} baris dilewati karena tidak memiliki data budget (semua nilai kosong/nol).";
+            }
+
             return redirect()->route('admin.financial.input-budget', [
                 'property' => $property->id,
                 'year' => $validated['year']
-            ])->with('success', "Berhasil mengimport budget untuk {$months} kategori ({$importedCount} bulan) di " . $property->name);
+            ])->with('success', $message);
         } catch (\Exception $e) {
             return redirect()->route('admin.financial.input-budget', [
                 'property' => $property->id,
