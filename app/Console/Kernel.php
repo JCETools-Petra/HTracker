@@ -19,6 +19,7 @@ class Kernel extends ConsoleKernel
         Commands\ShowBudgetDetails::class,
         Commands\FixBudgetJanuary::class,
         Commands\ClearBudgetData::class,
+        Commands\DetectAndFixBudgetIssues::class,
     ];
 
     /**
