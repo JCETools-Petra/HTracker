@@ -42,7 +42,7 @@ class FinancialReportService
         $entriesYtd = FinancialEntry::where('property_id', $propertyId)
             ->where('year', $year)
             ->where('month', '<=', $month)
-            ->selectRaw('financial_category_id, SUM(actual_value) as total_actual, SUM(budget_value) as total_budget')
+            ->selectRaw('financial_category_id, SUM(actual_value) as total_actual, SUM(budget_value) as total_budget, SUM(forecast_value) as total_forecast')
             ->groupBy('financial_category_id')
             ->get()
             ->keyBy('financial_category_id');
