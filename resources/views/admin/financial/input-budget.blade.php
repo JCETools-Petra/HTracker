@@ -25,6 +25,43 @@
                         </div>
                     @endif
 
+                    @php
+                        // Check if budget data already exists for this year
+                        $existingBudgetCount = \App\Models\FinancialEntry::where('property_id', $property->id)
+                            ->where('year', $year)
+                            ->where('budget_value', '>', 0)
+                            ->count();
+                        $hasExistingBudget = $existingBudgetCount > 0;
+                    @endphp
+
+                    @if ($hasExistingBudget)
+                        <div class="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900 border-l-4 border-yellow-400 dark:border-yellow-600 rounded-md">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <h3 class="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                                        ⚠️ Data Budget Sudah Ada untuk Tahun {{ $year }}
+                                    </h3>
+                                    <div class="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
+                                        <p class="mb-2">
+                                            Terdapat <strong>{{ number_format($existingBudgetCount) }} entries</strong> budget yang sudah tersimpan untuk tahun ini.
+                                        </p>
+                                        <p class="mb-2 font-semibold">PENTING: Hindari Double Input!</p>
+                                        <ul class="list-disc list-inside space-y-1 ml-2">
+                                            <li>Jika Anda sudah <strong>IMPORT EXCEL</strong>, <span class="font-bold text-red-600">JANGAN klik "Simpan Budget"</span> lagi di form manual!</li>
+                                            <li>Jika ingin update budget, gunakan <strong>IMPORT EXCEL</strong> saja (akan otomatis replace data lama)</li>
+                                            <li>Jika ingin input manual baru, hapus data lama dulu dengan command: <code class="bg-gray-200 dark:bg-gray-700 px-1 rounded">php artisan budget:clear {{ $property->id }} {{ $year }}</code></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
                     <!-- Year Selection -->
                     <form method="GET" action="{{ route('admin.financial.input-budget', $property->id) }}" class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg shadow">
                         <div class="flex flex-col md:flex-row md:items-end md:space-x-4 space-y-4 md:space-y-0">
