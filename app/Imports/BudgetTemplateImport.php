@@ -83,11 +83,15 @@ class BudgetTemplateImport implements ToModel, WithHeadingRow, WithValidation
         ];
 
         $successCount = 0;
+        $monthlyValues = [];
+
         foreach ($months as $monthNumber => $monthName) {
             $budgetValue = $row[$monthName] ?? 0;
 
             // Convert to numeric if it's a string
             $budgetValue = is_numeric($budgetValue) ? floatval($budgetValue) : 0;
+
+            $monthlyValues[$monthName] = $budgetValue;
 
             // Update or create financial entry (even for 0 values to ensure consistency)
             FinancialEntry::updateOrCreate(
@@ -106,7 +110,14 @@ class BudgetTemplateImport implements ToModel, WithHeadingRow, WithValidation
             $successCount++;
         }
 
-        \Log::info("Successfully imported {$successCount} months for Category ID {$categoryId} ({$category->name})");
+        $totalYearly = array_sum($monthlyValues);
+        \Log::info("Successfully imported {$successCount} months for Category ID {$categoryId} ({$category->name})", [
+            'category_id' => $categoryId,
+            'category_name' => $category->name,
+            'monthly_values' => $monthlyValues,
+            'yearly_total' => $totalYearly,
+            'average_monthly' => $totalYearly / 12,
+        ]);
 
         return null; // We're not creating models, just updating entries
     }
