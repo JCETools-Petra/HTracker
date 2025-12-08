@@ -113,6 +113,11 @@ Route::prefix('admin')->middleware(['auth', 'verified', 'role:admin,owner'])->na
     Route::get('/financial/{property}/export-excel', [\App\Http\Controllers\Admin\FinancialController::class, 'exportExcel'])->name('financial.export-excel');
     Route::get('/financial/{property}/export-pdf', [\App\Http\Controllers\Admin\FinancialController::class, 'exportPdf'])->name('financial.export-pdf');
 
+    // Budget Debugging Routes for Admin
+    Route::get('/financial/{property}/debug/verify', [\App\Http\Controllers\Admin\BudgetDebugController::class, 'verify'])->name('financial.debug.verify');
+    Route::get('/financial/{property}/debug/show', [\App\Http\Controllers\Admin\BudgetDebugController::class, 'show'])->name('financial.debug.show');
+    Route::get('/financial/{property}/debug/api', [\App\Http\Controllers\Admin\BudgetDebugController::class, 'api'])->name('financial.debug.api');
+
     // Financial Category Management for Admin
     Route::resource('financial-categories', \App\Http\Controllers\Admin\FinancialCategoryController::class);
 
