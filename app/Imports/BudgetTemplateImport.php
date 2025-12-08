@@ -32,9 +32,20 @@ class BudgetTemplateImport implements ToModel, WithHeadingRow, WithValidation
     {
         $rowNumber = $this->currentRow++;
 
-        // Debug: Log setiap baris yang dibaca
-        \Log::info("Import Row {$rowNumber}", [
+        // Debug: Log setiap baris yang dibaca with detailed type information
+        $debugRow = [];
+        foreach ($row as $key => $value) {
+            $debugRow[$key] = [
+                'value' => $value,
+                'type' => gettype($value),
+                'is_null' => is_null($value),
+                'is_empty_string' => $value === '',
+            ];
+        }
+
+        \Log::info("Import Row {$rowNumber} - DETAILED", [
             'raw_row' => $row,
+            'debug_row' => $debugRow,
             'category_id' => $row['category_id'] ?? 'NULL',
         ]);
 
