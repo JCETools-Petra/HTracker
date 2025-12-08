@@ -15,6 +15,8 @@ class Kernel extends ConsoleKernel
     protected $commands = [
         Commands\RecalculateIncomes::class,
         Commands\CheckoutPropertyReservations::class,
+        Commands\VerifyBudgetData::class,
+        Commands\ShowBudgetDetails::class,
     ];
 
     /**
