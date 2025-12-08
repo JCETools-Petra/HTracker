@@ -102,6 +102,11 @@
                             </div>
                             
                             <div class="col-span-1 md:col-start-2">
+                                <x-input-label for="beverage_income" :value="__('Beverage (Pendapatan)')" />
+                                <x-text-input id="beverage_income" class="block mt-1 w-full" type="number" name="beverage_income" :value="old('beverage_income', 0)" />
+                            </div>
+
+                            <div class="col-span-1 md:col-start-2">
                                 <x-input-label for="breakfast_income" :value="__('Breakfast (Pendapatan)')" />
                                 <x-text-input id="breakfast_income" class="block mt-1 w-full" type="number" name="breakfast_income" :value="old('breakfast_income', 0)" />
                             </div>
@@ -115,7 +120,17 @@
                                 <x-input-label for="dinner_income" :value="__('Dinner (Pendapatan)')" />
                                 <x-text-input id="dinner_income" class="block mt-1 w-full" type="number" name="dinner_income" :value="old('dinner_income', 0)" />
                             </div>
-                            
+
+                            <div class="col-span-1 md:col-start-2">
+                                <x-input-label for="package_income" :value="__('Package (Pendapatan)')" />
+                                <x-text-input id="package_income" class="block mt-1 w-full" type="number" name="package_income" :value="old('package_income', 0)" />
+                            </div>
+
+                            <div class="col-span-1 md:col-start-2">
+                                <x-input-label for="rental_area_income" :value="__('Rental Area (Pendapatan)')" />
+                                <x-text-input id="rental_area_income" class="block mt-1 w-full" type="number" name="rental_area_income" :value="old('rental_area_income', 0)" />
+                            </div>
+
                             <div class="col-span-1 md:col-start-2">
                                 <x-input-label for="others_income" :value="__('Lainnya (Pendapatan)')" />
                                 <x-text-input id="others_income" class="block mt-1 w-full" type="number" name="others_income" :value="old('others_income', 0)" />

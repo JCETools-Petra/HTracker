@@ -16,7 +16,7 @@ class DailyIncome extends Model
         'property_id', 'user_id', 'date',
         'offline_rooms', 'online_rooms', 'ta_rooms', 'gov_rooms', 'corp_rooms', 'compliment_rooms', 'house_use_rooms', 'afiliasi_rooms',
         'offline_room_income', 'online_room_income', 'ta_income', 'gov_income', 'corp_income', 'compliment_income', 'house_use_income', 'afiliasi_room_income',
-        'breakfast_income', 'lunch_income', 'dinner_income', 'mice_room_income', 'others_income',
+        'breakfast_income', 'lunch_income', 'dinner_income', 'beverage_income', 'package_income', 'rental_area_income', 'mice_room_income', 'others_income',
         'total_rooms_sold', 'total_rooms_revenue', 'total_fb_revenue', 'total_revenue', 'arr', 'occupancy',
     ];
 
@@ -65,7 +65,7 @@ class DailyIncome extends Model
 
         // Hitung total pendapatan F&B
         $this->total_fb_revenue =
-            ($this->breakfast_income ?? 0) + ($this->lunch_income ?? 0) + ($this->dinner_income ?? 0);
+            ($this->breakfast_income ?? 0) + ($this->lunch_income ?? 0) + ($this->dinner_income ?? 0) + ($this->beverage_income ?? 0);
 
         // Update pendapatan MICE jika dilempar dari form Admin
         if ($miceIncome !== null) {
@@ -73,8 +73,9 @@ class DailyIncome extends Model
         }
 
         // Hitung total pendapatan keseluruhan
-        $this->total_revenue = $this->total_rooms_revenue + $this->total_fb_revenue + 
-                               ($this->mice_room_income ?? 0) + ($this->others_income ?? 0);
+        $this->total_revenue = $this->total_rooms_revenue + $this->total_fb_revenue +
+                               ($this->package_income ?? 0) + ($this->mice_room_income ?? 0) +
+                               ($this->rental_area_income ?? 0) + ($this->others_income ?? 0);
 
         // Hitung ARR (Average Room Rate)
         $this->arr = ($this->total_rooms_sold > 0) ? ($this->total_rooms_revenue / $this->total_rooms_sold) : 0;

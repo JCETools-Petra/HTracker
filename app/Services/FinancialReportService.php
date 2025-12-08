@@ -59,7 +59,13 @@ class FinancialReportService
             ->whereMonth('date', $month)
             ->first([
                 DB::raw('SUM(total_rooms_revenue) as room_rev'),
-                DB::raw('SUM(total_fb_revenue) as fb_rev')
+                DB::raw('SUM(beverage_income) as beverage_rev'),
+                DB::raw('SUM(breakfast_income) as breakfast_rev'),
+                DB::raw('SUM(lunch_income) as lunch_rev'),
+                DB::raw('SUM(dinner_income) as dinner_rev'),
+                DB::raw('SUM(package_income) as package_rev'),
+                DB::raw('SUM(rental_area_income) as rental_rev'),
+                DB::raw('SUM(others_income) as others_rev')
             ]);
 
         // Fetch Auto-Calculated Data (YTD)
@@ -74,7 +80,13 @@ class FinancialReportService
             ->whereMonth('date', '<=', $month)
             ->first([
                 DB::raw('SUM(total_rooms_revenue) as room_rev'),
-                DB::raw('SUM(total_fb_revenue) as fb_rev')
+                DB::raw('SUM(beverage_income) as beverage_rev'),
+                DB::raw('SUM(breakfast_income) as breakfast_rev'),
+                DB::raw('SUM(lunch_income) as lunch_rev'),
+                DB::raw('SUM(dinner_income) as dinner_rev'),
+                DB::raw('SUM(package_income) as package_rev'),
+                DB::raw('SUM(rental_area_income) as rental_rev'),
+                DB::raw('SUM(others_income) as others_rev')
             ]);
 
         // Prepare Context for Recursive Function
@@ -83,14 +95,26 @@ class FinancialReportService
             'entries_ytd' => $entriesYtd,
             'auto_values' => [
                 'current' => [
-                    'MICE_REV' => $bookingsCurrent ?? 0,
                     'ROOM_REV' => $dailyIncomeCurrent->room_rev ?? 0,
-                    'FNB_REV' => $dailyIncomeCurrent->fb_rev ?? 0,
+                    'BEV_REV' => $dailyIncomeCurrent->beverage_rev ?? 0,
+                    'BREAKFAST_REV' => $dailyIncomeCurrent->breakfast_rev ?? 0,
+                    'LUNCH_REV' => $dailyIncomeCurrent->lunch_rev ?? 0,
+                    'DINNER_REV' => $dailyIncomeCurrent->dinner_rev ?? 0,
+                    'PACKAGE_REV' => $dailyIncomeCurrent->package_rev ?? 0,
+                    'MICE_REV' => $bookingsCurrent ?? 0,
+                    'RENTAL_REV' => $dailyIncomeCurrent->rental_rev ?? 0,
+                    'OTHERS_REV' => $dailyIncomeCurrent->others_rev ?? 0,
                 ],
                 'ytd' => [
-                    'MICE_REV' => $bookingsYtd ?? 0,
                     'ROOM_REV' => $dailyIncomeYtd->room_rev ?? 0,
-                    'FNB_REV' => $dailyIncomeYtd->fb_rev ?? 0,
+                    'BEV_REV' => $dailyIncomeYtd->beverage_rev ?? 0,
+                    'BREAKFAST_REV' => $dailyIncomeYtd->breakfast_rev ?? 0,
+                    'LUNCH_REV' => $dailyIncomeYtd->lunch_rev ?? 0,
+                    'DINNER_REV' => $dailyIncomeYtd->dinner_rev ?? 0,
+                    'PACKAGE_REV' => $dailyIncomeYtd->package_rev ?? 0,
+                    'MICE_REV' => $bookingsYtd ?? 0,
+                    'RENTAL_REV' => $dailyIncomeYtd->rental_rev ?? 0,
+                    'OTHERS_REV' => $dailyIncomeYtd->others_rev ?? 0,
                 ]
             ]
         ];

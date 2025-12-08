@@ -295,6 +295,9 @@ class PropertyIncomeController extends Controller
             'breakfast_income' => 'required|numeric|min:0',
             'lunch_income' => 'required|numeric|min:0',
             'dinner_income' => 'required|numeric|min:0',
+            'beverage_income' => 'required|numeric|min:0',
+            'package_income' => 'required|numeric|min:0',
+            'rental_area_income' => 'required|numeric|min:0',
             'others_income' => 'required|numeric|min:0',
         ], [
             'date.unique' => 'Pendapatan untuk tanggal ini sudah pernah dicatat.',
@@ -344,6 +347,9 @@ class PropertyIncomeController extends Controller
             'breakfast_income' => 'required|numeric|min:0',
             'lunch_income' => 'required|numeric|min:0',
             'dinner_income' => 'required|numeric|min:0',
+            'beverage_income' => 'required|numeric|min:0',
+            'package_income' => 'required|numeric|min:0',
+            'rental_area_income' => 'required|numeric|min:0',
             'others_income' => 'required|numeric|min:0',
         ], [
             'date.unique' => 'Pendapatan untuk tanggal ini sudah ada.',

@@ -41,14 +41,29 @@ class FinancialCategorySeeder extends Seeder
         // 1. Room Revenue (Auto-calculated from DailyIncome)
         $roomRevenue = $this->createCategory($propertyId, null, 'Room Revenue', 'ROOM_REV', 'revenue', false, $sortOrder++);
 
-        // 2. F&B Revenue (Auto-calculated from DailyIncome)
-        $fnbRevenue = $this->createCategory($propertyId, null, 'F&B Revenue', 'FNB_REV', 'revenue', false, $sortOrder++);
+        // 2. Beverage Revenue (Auto-calculated from DailyIncome)
+        $beverageRevenue = $this->createCategory($propertyId, null, 'Beverage Revenue', 'BEV_REV', 'revenue', false, $sortOrder++);
 
-        // 3. MICE Revenue (Auto-calculated from Bookings)
+        // 3. Breakfast Revenue (Auto-calculated from DailyIncome)
+        $breakfastRevenue = $this->createCategory($propertyId, null, 'Breakfast Revenue', 'BREAKFAST_REV', 'revenue', false, $sortOrder++);
+
+        // 4. Lunch Revenue (Auto-calculated from DailyIncome)
+        $lunchRevenue = $this->createCategory($propertyId, null, 'Lunch Revenue', 'LUNCH_REV', 'revenue', false, $sortOrder++);
+
+        // 5. Dinner Revenue (Auto-calculated from DailyIncome)
+        $dinnerRevenue = $this->createCategory($propertyId, null, 'Dinner Revenue', 'DINNER_REV', 'revenue', false, $sortOrder++);
+
+        // 6. Package Revenue (Auto-calculated from DailyIncome)
+        $packageRevenue = $this->createCategory($propertyId, null, 'Package Revenue', 'PACKAGE_REV', 'revenue', false, $sortOrder++);
+
+        // 7. MICE Revenue (Auto-calculated from Bookings)
         $miceRevenue = $this->createCategory($propertyId, null, 'MICE Revenue', 'MICE_REV', 'revenue', false, $sortOrder++);
 
-        // 4. Other Revenue
-        $otherRevenue = $this->createCategory($propertyId, null, 'Other Revenue', null, 'revenue', false, $sortOrder++);
+        // 8. Rental Area
+        $rentalArea = $this->createCategory($propertyId, null, 'Rental Area', 'RENTAL_REV', 'revenue', false, $sortOrder++);
+
+        // 9. OTHERS
+        $othersRevenue = $this->createCategory($propertyId, null, 'OTHERS', 'OTHERS_REV', 'revenue', false, $sortOrder++);
 
         // ============================================================
         // B. EXPENSES SECTION - Departmental Breakdown

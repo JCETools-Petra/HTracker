@@ -43,13 +43,16 @@ class IncomeController extends Controller
             'compliment_income' => 'nullable|numeric|min:0',
             'house_use_income' => 'nullable|numeric|min:0',
             'afiliasi_room_income' => 'nullable|numeric|min:0',
-            'mice_room_income' => 'nullable|numeric|min:0', 
+            'mice_room_income' => 'nullable|numeric|min:0',
             'breakfast_income' => 'nullable|numeric|min:0',
             'lunch_income' => 'nullable|numeric|min:0',
             'dinner_income' => 'nullable|numeric|min:0',
+            'beverage_income' => 'nullable|numeric|min:0',
+            'package_income' => 'nullable|numeric|min:0',
+            'rental_area_income' => 'nullable|numeric|min:0',
             'others_income' => 'nullable|numeric|min:0',
         ]);
-        
+
         $miceIncomeFromForm = $validatedData['mice_room_income'] ?? 0;
         
         $incomeData = $validatedData;
@@ -100,11 +103,14 @@ class IncomeController extends Controller
             'breakfast_income' => 'nullable|numeric|min:0',
             'lunch_income' => 'nullable|numeric|min:0',
             'dinner_income' => 'nullable|numeric|min:0',
+            'beverage_income' => 'nullable|numeric|min:0',
+            'package_income' => 'nullable|numeric|min:0',
+            'rental_area_income' => 'nullable|numeric|min:0',
             'others_income' => 'nullable|numeric|min:0',
         ]);
 
         $miceIncomeFromForm = $validatedData['mice_room_income'] ?? 0;
-        
+
         $income->update($validatedData);
 
         // Panggil method kalkulasi dari model
