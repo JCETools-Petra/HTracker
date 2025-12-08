@@ -1,5 +1,33 @@
 # Budget Import Debug Guide
 
+## 🚀 Quick Start (Cara Cepat Debugging)
+
+### Opsi 1: Via Browser (RECOMMENDED - Lebih Mudah)
+```
+https://mainproject.my.id/admin/financial/{property_id}/debug/api?year=2026&category_id=729
+```
+
+Ganti:
+- `{property_id}` dengan ID property Anda (contoh: 1 untuk SUNNYDAY INN)
+- `year=2026` dengan tahun yang ingin dicek
+- `category_id=729` dengan ID kategori yang bermasalah (729 = SALARIES & WAGES)
+
+**Contoh:**
+```
+https://mainproject.my.id/admin/financial/1/debug/api?year=2026&category_id=729
+```
+
+Output akan menunjukkan JSON dengan detail budget per bulan untuk kategori tersebut.
+
+### Opsi 2: Via Console Command
+Setelah `git pull` dan `composer dump-autoload`, jalankan:
+```bash
+php artisan budget:verify 1 2026
+php artisan budget:show 1 2026 729
+```
+
+---
+
 ## Masalah yang Ditemukan & Diperbaiki
 
 ### 1. ✅ Bug Query YTD (FIXED)
@@ -30,6 +58,66 @@ Ini akan membantu mengidentifikasi jika ada nilai yang salah saat import.
 ---
 
 ## Tools Debugging Baru
+
+### 🌐 Web Interface (Browser-Based Debugging)
+
+#### 1. API Endpoint (JSON Output)
+**URL:** `/admin/financial/{property}/debug/api`
+
+**Parameters:**
+- `year` - Tahun budget (default: tahun sekarang)
+- `category_id` - (Optional) ID kategori spesifik
+
+**Contoh Penggunaan:**
+```
+# Semua kategori untuk tahun 2026
+https://mainproject.my.id/admin/financial/1/debug/api?year=2026
+
+# Kategori spesifik (ID 729)
+https://mainproject.my.id/admin/financial/1/debug/api?year=2026&category_id=729
+```
+
+**Output:**
+```json
+{
+  "property_id": 1,
+  "property_name": "SUNNYDAY INN",
+  "year": 2026,
+  "total_entries": 12,
+  "categories": [
+    {
+      "category_id": 729,
+      "category_name": "SALARIES & WAGES",
+      "category_path": "Front Office > PAYROLL & RELATED EXPENSES > SALARIES & WAGES",
+      "entries_count": 12,
+      "months": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      "budget_values": [17143400, 17143400, ..., 17143400],
+      "sum_budget": 205720800,
+      "sum_actual": 0,
+      "sum_forecast": 0
+    }
+  ]
+}
+```
+
+Periksa apakah:
+- `sum_budget` sesuai dengan yang diharapkan (205,720,800)
+- `budget_values` array berisi nilai yang sama untuk semua bulan (17,143,400)
+- `entries_count` = 12 (semua bulan ada)
+
+#### 2. Verification Page (HTML Output)
+**URL:** `/admin/financial/{property}/debug/verify?year=2026`
+
+Menampilkan tabel semua kategori dengan statistik budget.
+
+#### 3. Detail Page (HTML Output)
+**URL:** `/admin/financial/{property}/debug/show?year=2026&category_id=729`
+
+Menampilkan breakdown detail per bulan untuk kategori tertentu.
+
+---
+
+### 💻 Console Commands
 
 ### Command 1: Verify Budget Data
 Memeriksa integritas data budget dan mendeteksi masalah seperti:
