@@ -14,6 +14,7 @@ class BudgetTemplateImport implements ToModel, WithHeadingRow, WithValidation
     protected $propertyId;
     protected $year;
     protected $importedCount = 0;
+    protected $skippedCount = 0;
     protected $errors = [];
     protected $currentRow = 5; // Starting from row 5 (first data row after header at row 4)
 
@@ -93,11 +94,28 @@ class BudgetTemplateImport implements ToModel, WithHeadingRow, WithValidation
             12 => 'december',
         ];
 
+        // First, check if all monthly values are NULL or empty
+        $hasAnyValue = false;
+        foreach ($months as $monthName) {
+            $value = $row[$monthName] ?? null;
+            if (!is_null($value) && $value !== '' && $value != 0) {
+                $hasAnyValue = true;
+                break;
+            }
+        }
+
+        // Skip this row if all monthly values are NULL/empty/zero
+        if (!$hasAnyValue) {
+            $this->skippedCount++;
+            \Log::warning("Skipping row {$rowNumber} - Category ID {$categoryId} ({$category->name}): All monthly values are NULL/empty/zero. No budget data to import.");
+            return null;
+        }
+
         $successCount = 0;
         $monthlyValues = [];
 
         foreach ($months as $monthNumber => $monthName) {
-            $rawValue = $row[$monthName] ?? 0;
+            $rawValue = $row[$monthName] ?? null;
             $budgetValue = $rawValue;
 
             // Handle null or empty string as 0
@@ -191,6 +209,11 @@ class BudgetTemplateImport implements ToModel, WithHeadingRow, WithValidation
     public function getImportedCount(): int
     {
         return $this->importedCount;
+    }
+
+    public function getSkippedCount(): int
+    {
+        return $this->skippedCount;
     }
 
     public function getErrors(): array
