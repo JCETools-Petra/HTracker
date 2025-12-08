@@ -70,9 +70,9 @@ class BudgetTemplateImport implements ToModel, WithHeadingRow, WithValidation
             return null;
         }
 
-        // Only allow budget import for expense type categories
-        if ($category->type !== 'expense') {
-            $error = "Baris {$rowNumber}: Category ID {$categoryId} ({$category->name}) bukan kategori expense (type: {$category->type}) - hanya kategori expense yang bisa memiliki budget";
+        // Only allow budget import for expense and revenue type categories
+        if ($category->type !== 'expense' && $category->type !== 'revenue') {
+            $error = "Baris {$rowNumber}: Category ID {$categoryId} ({$category->name}) bukan kategori expense atau revenue (type: {$category->type}) - hanya kategori expense dan revenue yang bisa memiliki budget";
             $this->errors[] = $error;
             \Log::warning($error);
             return null;

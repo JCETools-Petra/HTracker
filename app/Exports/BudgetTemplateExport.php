@@ -49,27 +49,73 @@ class BudgetTemplateExport implements FromArray, WithStyles, WithColumnWidths, W
             ['Category ID', 'Department', 'Category Name', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'], // Baris 4: Header Data
         ];
 
-        // Get all expense departments only (top-level categories with type='expense')
+        // ============================================================
+        // A. REVENUE SECTION
+        // ============================================================
+        // Get all revenue categories (top-level categories with type='revenue')
+        $revenueCategories = FinancialCategory::forProperty($this->propertyId)
+            ->whereNull('parent_id')
+            ->where('type', 'revenue')
+            ->orderBy('sort_order')
+            ->get();
+
+        if ($revenueCategories->isNotEmpty()) {
+            // Add REVENUE section header
+            $data[] = [
+                '', // Category ID
+                '═══ REVENUE ═══', // Department
+                '', // Category Name
+                '', '', '', '', '', '', '', '', '', '', '', '' // Empty months
+            ];
+
+            foreach ($revenueCategories as $revenue) {
+                // Add revenue category row
+                $data[] = [
+                    $revenue->id, // Category ID
+                    'REVENUE', // Department
+                    $revenue->name, // Category Name
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 // 12 months with default 0
+                ];
+            }
+
+            // Add empty row separator
+            $data[] = [''];
+        }
+
+        // ============================================================
+        // B. EXPENSES SECTION
+        // ============================================================
+        // Get all expense departments (top-level categories with type='expense')
         $departments = FinancialCategory::forProperty($this->propertyId)
             ->whereNull('parent_id')
             ->where('type', 'expense')
             ->orderBy('sort_order')
             ->get();
 
-        foreach ($departments as $department) {
-            // Add department header row
+        if ($departments->isNotEmpty()) {
+            // Add EXPENSES section header
             $data[] = [
                 '', // Category ID
-                strtoupper($department->name), // Department
+                '═══ EXPENSES ═══', // Department
                 '', // Category Name
                 '', '', '', '', '', '', '', '', '', '', '', '' // Empty months
             ];
 
-            // Get all expense categories under this department
-            $this->addCategoriesRecursive($data, $department, 1);
+            foreach ($departments as $department) {
+                // Add department header row
+                $data[] = [
+                    '', // Category ID
+                    strtoupper($department->name), // Department
+                    '', // Category Name
+                    '', '', '', '', '', '', '', '', '', '', '', '' // Empty months
+                ];
 
-            // Add empty row between departments
-            $data[] = ['']; // FIXED: Gunakan [''] untuk pemisah antar departemen
+                // Get all expense categories under this department
+                $this->addCategoriesRecursive($data, $department, 1);
+
+                // Add empty row between departments
+                $data[] = ['']; // FIXED: Gunakan [''] untuk pemisah antar departemen
+            }
         }
 
         return $data;
@@ -216,10 +262,46 @@ class BudgetTemplateExport implements FromArray, WithStyles, WithColumnWidths, W
                     $departmentCell = $sheet->getCell("B{$row}")->getValue();
                     $categoryCell = $sheet->getCell("C{$row}")->getValue();
 
+                    // Check if this is a section header (REVENUE or EXPENSES)
+                    if (!empty($departmentCell) && (strpos($departmentCell, '═══') !== false)) {
+                        // Style main section header (REVENUE or EXPENSES)
+                        $isRevenue = strpos($departmentCell, 'REVENUE') !== false;
+                        $sectionColor = $isRevenue ? '92D050' : 'FFC7CE'; // Green for revenue, light red for expenses
+
+                        $sheet->mergeCells("A{$row}:O{$row}");
+                        $sheet->getStyle("A{$row}:O{$row}")->applyFromArray([
+                            'font' => [
+                                'bold' => true,
+                                'size' => 14,
+                                'color' => ['rgb' => 'FFFFFF'],
+                            ],
+                            'fill' => [
+                                'fillType' => Fill::FILL_SOLID,
+                                'startColor' => ['rgb' => $sectionColor],
+                            ],
+                            'alignment' => [
+                                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                                'vertical' => Alignment::VERTICAL_CENTER,
+                            ],
+                            'borders' => [
+                                'outline' => [
+                                    'borderStyle' => Border::BORDER_THICK,
+                                    'color' => ['rgb' => '000000'],
+                                ],
+                            ],
+                        ]);
+                        $sheet->getRowDimension($row)->setRowHeight(25);
+                    }
                     // Check if this is a department header row (has department name but no category ID)
-                    if (!empty($departmentCell) && empty($categoryId) && empty($categoryCell)) {
+                    elseif (!empty($departmentCell) && empty($categoryId) && empty($categoryCell)) {
                         $currentDepartment = $departmentCell;
-                        $departmentColor = $this->getDepartmentColor($departmentCell);
+
+                        // Special styling for REVENUE department
+                        if ($departmentCell === 'REVENUE') {
+                            $departmentColor = 'C6EFCE'; // Light green for revenue
+                        } else {
+                            $departmentColor = $this->getDepartmentColor($departmentCell);
+                        }
 
                         // Style department header
                         $sheet->mergeCells("B{$row}:O{$row}");
