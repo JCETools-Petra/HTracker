@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\ActivityLogController;
+use App\Http\Controllers\Admin\ApiKeyController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\HotelRoomController as AdminHotelRoomController;
 use App\Http\Controllers\Admin\IncomeController as AdminIncomeController;
@@ -147,6 +148,16 @@ Route::prefix('admin')->middleware(['auth', 'verified', 'role:admin,owner'])->na
         Route::put('/update-pricing-rule/{roomType}', [PricingRuleController::class, 'updatePricingRule'])->name('rule.update');
         Route::delete('/destroy-room-type/{roomType}', [PricingRuleController::class, 'destroyRoomType'])->name('room-type.destroy');
         Route::put('/update-property-bars', [PricingRuleController::class, 'updatePropertyBars'])->name('property-bars.update');
+    });
+    Route::prefix('properties/{property}/api-keys')->name('properties.api-keys.')->group(function () {
+        Route::get('/', [ApiKeyController::class, 'index'])->name('index');
+        Route::get('/create', [ApiKeyController::class, 'create'])->name('create');
+        Route::post('/', [ApiKeyController::class, 'store'])->name('store');
+        Route::get('/{apiKey}', [ApiKeyController::class, 'show'])->name('show');
+        Route::get('/{apiKey}/edit', [ApiKeyController::class, 'edit'])->name('edit');
+        Route::put('/{apiKey}', [ApiKeyController::class, 'update'])->name('update');
+        Route::delete('/{apiKey}', [ApiKeyController::class, 'destroy'])->name('destroy');
+        Route::post('/{apiKey}/toggle', [ApiKeyController::class, 'toggle'])->name('toggle');
     });
     Route::get('/inventories/export', [\App\Http\Controllers\Admin\InventoryController::class, 'exportExcel'])->name('inventories.export');
     Route::post('/settings/test-msq-email', [\App\Http\Controllers\Admin\SettingController::class, 'sendTestMsqEmail'])->name('settings.testMsqEmail');
