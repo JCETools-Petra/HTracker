@@ -83,6 +83,11 @@ class Property extends Model
         return $this->hasMany(\App\Models\FinancialEntry::class);
     }
 
+    public function apiKeys(): HasMany
+    {
+        return $this->hasMany(ApiKey::class);
+    }
+
     // ==========================================================
     // METHOD 'booted()' YANG SEBELUMNYA ADA DI SINI, SEKARANG DIHAPUS
     // ==========================================================
